@@ -4,7 +4,7 @@
 
 # Pandora Spacecraft
 
-This package helps you quickly estimate Pandora's position and velocity at a particular time. Check out the documentation at the pages above for examples.
+This package helps you quickly estimate Pandora's position and velocity at a particular time. Check the example usage to see how to use this package to calculate Pandora's orbital properties.
 
 ### Installation
 

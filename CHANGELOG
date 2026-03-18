@@ -1,0 +1,5 @@
+# v1.0.0
+
+- Fixed testing
+- Moved SPK files to astropy cache so they can be shared
+- Updated tutorial
