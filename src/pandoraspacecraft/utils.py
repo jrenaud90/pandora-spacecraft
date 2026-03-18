@@ -128,9 +128,9 @@ def create_meta_test_kernel():
 def create_meta_kernel():
     """Create a meta kernel out of the cached SPICE kernels"""
     KERNELS = {
-        "naif0012.tls": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/",
+        # "naif0012.tls": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/",
         "de440.bsp": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/",
-        "pck00011.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
+        # "pck00011.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
     }
 
     paths = get_file_paths(KERNELS)

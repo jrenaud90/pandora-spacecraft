@@ -18,7 +18,7 @@ def test_tess_truncated():
     assert position.shape == (1, 3)
     lt = ps.get_spacecraft_light_travel_time(time)
     assert lt.shape == (1,)
-    assert np.isclose(lt, 500, atol=50)
+    assert np.isclose(lt.value, 500, atol=50)
     ra_result, dec_result = ps.get_velocity_aberrated_positions(time, ra, dec)
     assert ra_result.shape == (1,)
     assert dec_result.shape == (1,)

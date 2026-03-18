@@ -185,7 +185,7 @@ class Spacecraft(object):
 
     def get_spacecraft_position(
         self, time: Time, observer="SOLAR SYSTEM BARYCENTER"
-    ) -> npt.NDArray:
+    ) -> u.Quantity:
         """Returns the position vector (x, y, z) in [km] for all `time` w.r.t the observer.
 
         Parameters
@@ -195,11 +195,11 @@ class Spacecraft(object):
         observer : string
             Observer body. Common options include "SOLAR SYSTEM BARYCENTER", "EARTH BARYCENTER", "MOON BARYCENTER"
         """
-        return self._get_state_vector(time=time, observer=observer)[0][:, :3]
+        return self._get_state_vector(time=time, observer=observer)[0][:, :3] * u.km
 
     def get_spacecraft_velocity(
         self, time: Time, observer="SOLAR SYSTEM BARYCENTER"
-    ) -> npt.NDArray:
+    ) -> u.Quantity:
         """Returns the position vector (vx, vy, vz) in [km/s] for all `time` w.r.t the observer.
 
         Parameters
@@ -209,11 +209,13 @@ class Spacecraft(object):
         observer : string
             Observer body. Common options include "SOLAR SYSTEM BARYCENTER", "EARTH BARYCENTER", "MOON BARYCENTER"
         """
-        return self._get_state_vector(time=time, observer=observer)[0][:, 3:]
+        return (
+            self._get_state_vector(time=time, observer=observer)[0][:, 3:] * u.km / u.s
+        )
 
     def get_spacecraft_light_travel_time(
         self, time: Time, observer="SOLAR SYSTEM BARYCENTER"
-    ) -> npt.NDArray:
+    ) -> u.Quantity:
         """Returns the one-way light travel time in seconds for all `time` w.r.t the observer.
 
         Parameters
@@ -223,7 +225,7 @@ class Spacecraft(object):
         observer : string
             Observer body. Common options include "SOLAR SYSTEM BARYCENTER", "EARTH BARYCENTER", "MOON BARYCENTER"
         """
-        return self._get_state_vector(time=time, observer=observer)[1]
+        return self._get_state_vector(time=time, observer=observer)[1] * u.s
 
     def get_barycentric_time_correction(
         self, time: Time, ra: Union[float, npt.NDArray], dec: Union[float, npt.NDArray]
@@ -241,6 +243,11 @@ class Spacecraft(object):
             The right ascention of the target in degrees
         dec : float, np.ndarray
             The declination of the target in degrees
+
+        Returns
+        -------
+        tcorr : u.Quantity
+            Barycentric time correction in seconds
         """
         zerod = np.ndim(ra) == 0
         ra, dec = np.atleast_1d(ra), np.atleast_1d(dec)
@@ -258,12 +265,12 @@ class Spacecraft(object):
         position = self.get_spacecraft_position(time=time)
         tcorr = ((position * u.km).dot(star_vector) / (c)).to(u.s).value
         if zerod:
-            return tcorr[:, 0]
-        return tcorr.reshape((*time.shape, *ra.shape))
+            return tcorr[:, 0] * u.s
+        return tcorr.reshape((*time.shape, *ra.shape)) * u.s
 
     def get_velocity_aberrated_positions(
         self, time: Time, ra: float, dec: float
-    ) -> npt.NDArray:
+    ) -> (u.Quantity, u.Quantity):
         """Returns the RA and Dec after velocity aberration has been applied.
 
         Note that `time` here must be time in spacecraft time.
@@ -276,6 +283,13 @@ class Spacecraft(object):
             The right ascention of the target in degrees
         dec : float, np.ndarray
             The declination of the target in degrees
+
+        Returns
+        -------
+        ra : u.Quantity
+            Aberrated RA
+        dec : u.Quantity
+            Aberrated Dec
         """
         zerod = np.ndim(ra) == 0
         ra, dec = np.atleast_1d(ra), np.atleast_1d(dec)
@@ -293,7 +307,9 @@ class Spacecraft(object):
         star_vector /= np.linalg.norm(star_vector, axis=0)
 
         # Get the spacecraft velocity in m/s
-        velocity = self.get_spacecraft_velocity(time=time) * 1000  # Convert km/s to m/s
+        velocity = (
+            self.get_spacecraft_velocity(time=time).value * 1000
+        )  # Convert km/s to m/s
 
         # Compute beta vector (velocity / speed of light)
         beta = velocity / c.value
@@ -331,14 +347,15 @@ class Spacecraft(object):
             dec_aberrated.reshape((*time.shape, *dec.shape)),
         )
         if zerod:
-            return ra_aberrated[:, 0], dec_aberrated[:, 0]
-        return ra_aberrated.reshape((*time.shape, *ra.shape)), dec_aberrated.reshape(
-            (*time.shape, *ra.shape)
+            return ra_aberrated[:, 0] * u.deg, dec_aberrated[:, 0] * u.deg
+        return (
+            ra_aberrated.reshape((*time.shape, *ra.shape)) * u.deg,
+            dec_aberrated.reshape((*time.shape, *ra.shape)) * u.deg,
         )
 
     def get_differential_velocity_aberrated_positions(
         self, time: Time, ra: float, dec: float, ra0: float, dec0: float
-    ) -> npt.NDArray:
+    ) -> (u.Quantity, u.Quantity):
         """Returns the RA and Dec after differential velocity aberration has been applied.
 
         This is the effect of velocity aberration, accounting for the fact that the spacecraft tracks a given point in the sky.
@@ -358,6 +375,13 @@ class Spacecraft(object):
             The RA of the target which the spacecraft is pointed towards.
         dec0 : float
             The Dec of the target which the spacecraft is pointed towards.
+
+        Returns
+        -------
+        ra : u.Quantity
+            Aberrated RA
+        dec : u.Quantity
+            Aberrated Dec
         """
         zerod = np.ndim(ra) == 0
         ra, dec = np.atleast_1d(ra), np.atleast_1d(dec)
@@ -388,8 +412,8 @@ class Spacecraft(object):
         ra_ab_recentered = ra_ab_recentered.reshape((nt, *ra.shape))
         dec_ab_recentered = dec_ab_recentered.reshape((nt, *ra.shape))
         if zerod:
-            return ra_ab_recentered[:, 0], dec_ab_recentered[:, 0]
-        return ra_ab_recentered, dec_ab_recentered
+            return ra_ab_recentered[:, 0] * u.deg, dec_ab_recentered[:, 0] * u.deg
+        return ra_ab_recentered * u.deg, dec_ab_recentered * u.deg
 
     def plot_earth(self, ax=None):
         earth_rad = spiceypy.bodvrd("EARTH", "RADII", 3)[1][0]
@@ -416,7 +440,7 @@ class Spacecraft(object):
 
     def plot_position(self, time, ax=None):
         time
-        position = self.get_spacecraft_position(time, "EARTH")
+        position = self.get_spacecraft_position(time, "EARTH").value
 
         if ax is None:
             fig = plt.figure(figsize=(7, 7), dpi=150)
@@ -431,7 +455,7 @@ class Spacecraft(object):
         )
         return ax
 
-    def get_earth_subpoint(self, time) -> npt.NDArray:
+    def get_earth_subpoint(self, time) -> u.Quantity:
         """Returns the lattitude and longitude of the point underneath Pandora, accounting for light travel time and aberations.
 
         Parameters
@@ -441,9 +465,9 @@ class Spacecraft(object):
 
         Returns
         -------
-        lon : np.NDArray
+        lon : u.Quantity
             Longitude of the point on earth below the spacecraft in degrees
-        lat : np.NDArray
+        lat : u.Quantity
             Latitude of the point on earth below the spacecraft in degrees
         """
 
@@ -475,10 +499,10 @@ class Spacecraft(object):
         lon, lat = np.rad2deg(lon), np.rad2deg(lat)
 
         if ndim == 0:
-            return lon[0], lat[0]
-        return lon, lat
+            return lon[0] * u.deg, lat[0] * u.deg
+        return lon * u.deg, lat * u.deg
 
-    def get_earth_illumination(self, time) -> npt.NDArray:
+    def get_earth_illumination(self, time) -> u.Quantity:
         """Returns the angle of incidence of sunlight on the earth directly under Pandora
 
         Parameters
@@ -488,7 +512,7 @@ class Spacecraft(object):
 
         Returns
         -------
-        incidence : np.NDArray
+        incidence : u.Quantity
             Incidence of sunlight on the point on earth below the spacecraft in degrees.
         """
 
@@ -521,10 +545,10 @@ class Spacecraft(object):
             )
 
         if ndim == 0:
-            return np.rad2deg(incidence[0])  # , np.rad2deg(phase[0])
-        return np.rad2deg(incidence)  # , np.rad2deg(phase)
+            return np.rad2deg(incidence[0]) * u.deg  # , np.rad2deg(phase[0])
+        return np.rad2deg(incidence) * u.deg  # , np.rad2deg(phase)
 
-    def get_period(self, time) -> npt.NDArray:
+    def get_period(self, time) -> u.Quantity:
         """Returns the orbital period of Pandora at each time in minutes.
 
         Parameters
@@ -534,7 +558,7 @@ class Spacecraft(object):
 
         Returns
         -------
-        period : np.NDArray
+        period : u.Quantity
             Period of the spacecraft at the given time in minutes
         """
 
@@ -565,10 +589,10 @@ class Spacecraft(object):
         a = rp / (1.0 - ecc)  # km
         period = 2 * np.pi * np.sqrt(a**3 / GM_EARTH)  # seconds
         if ndim == 0:
-            return period[0] * u.second.to(u.minute)
-        return period * u.second.to(u.minute)
+            return (period[0] * u.second).to(u.minute)
+        return (period * u.second).to(u.minute)
 
-    def get_altitude(self, time) -> npt.NDArray:
+    def get_altitude(self, time) -> u.Quantity:
         """Returns the altitude of Pandora at each time in km.
 
         Parameters
@@ -578,12 +602,15 @@ class Spacecraft(object):
 
         Returns
         -------
-        altitude : npt.NDArray
+        altitude : u.Quantity
             Altitude of the spacecraft at the given time in km
         """
-        return np.linalg.norm(self.get_spacecraft_position(time, "earth"), axis=1)
+        return (
+            np.linalg.norm(self.get_spacecraft_position(time, "earth").value, axis=1)
+            * u.km
+        )
 
-    def get_angle_to_body(self, time, coord, body="SUN") -> npt.NDArray:
+    def get_angle_to_body(self, time, coord, body="SUN") -> u.Quantity:
         """Returns the angle between Pandora and the specified body in degrees.
 
         Parameters
@@ -593,7 +620,7 @@ class Spacecraft(object):
 
         Returns
         -------
-        angle : npt.NDArray
+        angle : u.Quantity
             Angle between Pandora and the body in degrees.
         """
         time = _process_time(time)
@@ -607,7 +634,7 @@ class Spacecraft(object):
             # print(norm)
             angle_limb = np.rad2deg(np.arcsin((R) / (np.linalg.norm(pos, axis=1))))
             angle -= angle_limb
-        return angle
+        return angle * u.deg
 
 
 class PandoraSpacecraft(Spacecraft):
