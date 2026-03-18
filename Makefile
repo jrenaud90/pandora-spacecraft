@@ -1,4 +1,4 @@
-.PHONY: all clean pytest coverage flake8 black mypy isort
+.PHONY: all clean pytest coverage flake8 black mypy isort tles
 
 # Run all the checks which do not change files
 all: isort black flake8 pytest
@@ -18,3 +18,13 @@ black:
 # Order the imports using `isort`
 isort:
 	poetry run isort src tests
+
+tles:
+	poetry run python -c "import pandoraspacecraft as psc; psc.utils.convert_tles()"
+
+# Serve docs
+serve:
+	$(CMD) mkdocs serve
+
+deploy:
+	$(CMD) mkdocs gh-deploy --force

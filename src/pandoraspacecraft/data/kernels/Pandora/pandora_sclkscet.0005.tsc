@@ -1,0 +1,29 @@
+KPL/SCLK
+
+This file is a SPICE spacecraft clock (SCLK) kernel. This file was generated
+by the NAIF MOSPICE utility program MAKCLK, version 5.1.0, 26-OCT-2021. Please refer to the
+SCLK Required Reading file, NAIF document number 222, and the MAKCLK User's
+Guide, NAIF document number 267, for information regarding this kernel file.
+ 
+\begindata
+
+SCLK_KERNEL_ID           = ( @2024-11-21/12:44:04.81 )
+
+SCLK_DATA_TYPE_99152        = ( 1 )
+SCLK01_TIME_SYSTEM_99152    = ( 2 )
+SCLK01_N_FIELDS_99152       = ( 2 )
+SCLK01_MODULI_99152         = ( 4294967296 1 )
+SCLK01_OFFSETS_99152        = ( 0 0 )
+SCLK01_OUTPUT_DELIM_99152   = ( 1 )
+
+SCLK_PARTITION_START_99152  = ( 0.0000000000000E+00 )
+
+SCLK_PARTITION_END_99152    = ( 4.2949672950000E+09 )
+
+SCLK01_COEFFICIENTS_99152   = (
+ 
+    0.0000000000000E+00     3.2184000000000E+01     1.0000000000000E+00
+    7.7842083700000E+08     7.7842086918400E+08     1.0000000000000E+00 )
+
+\begintext
+

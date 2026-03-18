@@ -1,10 +1,14 @@
 sandbox/
 scratch/
-src/lkspacecraft/data/kernels/generic
-src/lkspacecraft/data/kernels/Kepler
-src/lkspacecraft/data/kernels/K2
-src/lkspacecraft/data/kernels/TESS
-src/lkspacecraft/data/Meta.txt
+src/pandoraspacecraft/data/kernels/generic
+src/pandoraspacecraft/data/kernels/Kepler
+src/pandoraspacecraft/data/kernels/K2
+src/pandoraspacecraft/data/kernels/TESS
+src/pandoraspacecraft/data/Meta.txt
+src/pandoraspacecraft/data/noradtles
+src/pandoraspacecraft/data/buildspice/quats_to_ck.tm
+src/pandoraspacecraft/data/Pandora/*.spk
+
 
 
 # Byte-compiled / optimized / DLL files
