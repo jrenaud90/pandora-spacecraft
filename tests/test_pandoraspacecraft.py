@@ -4,11 +4,11 @@ from astropy.time import Time
 import pandoraspacecraft
 
 
-def test_tess_truncated():
+def test_pandora_truncated():
     pandoraspacecraft.enable_test_mode()
     ps = pandoraspacecraft.PandoraSpacecraft()
-    assert ps.start_time > Time("2026-01-20 20:09:56.999998", scale="tdb")
-    assert ps.end_time < Time("2027-01-20 11:33:59.999999", scale="tdb")
+    assert ps.start_time > Time("2026-2-19 20:09:56.999998", scale="tdb")
+    assert ps.end_time < Time("2026-02-26 11:33:59.999999", scale="tdb")
     time = Time("2026-02-22 13:00:00", scale="tdb")
     ra = 300
     dec = 10

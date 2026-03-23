@@ -1,21 +1,23 @@
 """Tools to maintain package"""
 
-import spiceypy
-import pandas as pd
-import numpy as np
-from astropy.time import Time
-import tempfile
-from pathlib import Path
+import os
 import shutil
+import tempfile
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import spiceypy
+from astropy.time import Time
 from astropy.utils.data import cache_contents
-from datetime import datetime, timezone, timedelta
+
+from . import PACKAGEDIR
 from .utils import (
     convert_telemetry_to_cks,
     convert_telemetry_to_spks,
     create_meta_test_kernel,
 )
-from . import PACKAGEDIR
-import os
 
 
 def update_cks(quaternions_csv_filename):

@@ -4,20 +4,20 @@ import shutil
 import subprocess
 import tempfile
 import warnings
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from glob import glob
 from pathlib import Path
 
+import astropy.units as u
 import numpy as np
 import pandas as pd
 from astropy.coordinates import SkyCoord
+from astropy.time import Time
 from astropy.utils.data import CacheMissingWarning, cache_contents
 from astropy.utils.data import clear_download_cache as _astropy_clear_download_cache
 from astropy.utils.data import download_file, import_file_to_cache, is_url_in_cache
 from tqdm import tqdm
-from datetime import datetime, timedelta, timezone
-from astropy.time import Time
-import astropy.units as u
 
 from . import CACHEDIR, KERNELDIR, PACKAGEDIR, TLEDIR, log
 
@@ -79,9 +79,18 @@ def create_meta_test_kernel():
     This meta kernel is only for testing, but doesn't require internet access to be able to generate.
     """
     paths = [
-        *glob(f"{PACKAGEDIR}/data/kernels/testkernels/*"),
         *glob(f"{PACKAGEDIR}/data/kernels/Pandora/*"),
     ]
+
+    paths = [
+        p
+        for p in paths
+        if (not p.endswith("bc"))
+        & (not p.endswith("bsp"))
+        & (not p.endswith("spk"))
+        & (not p.endswith("ck"))
+    ]
+    paths = [*glob(f"{PACKAGEDIR}/data/kernels/testkernels/*"), *paths]
 
     if len(paths) == 0:
         raise ValueError(

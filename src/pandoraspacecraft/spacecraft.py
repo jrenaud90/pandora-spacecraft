@@ -3,6 +3,7 @@
 from typing import Union
 
 import astropy.units as u
+import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -11,16 +12,14 @@ from astropy.constants import c
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astropy.utils.data import cache_contents
-import cartopy.crs as ccrs
-
 
 from . import is_test_mode, log
 from .utils import (
+    PANDORADIRECTIONS,
+    angle_between,
     create_meta_kernel,
     create_meta_test_kernel,
     vec_to_coord,
-    PANDORADIRECTIONS,
-    angle_between,
 )
 
 
@@ -782,7 +781,7 @@ class Spacecraft(object):
                     "PANDORA_SC",
                     direction,
                 )
-            except:
+            except:  # noqa
                 lat[tdx] = np.nan
                 lon[tdx] = np.nan
                 continue
