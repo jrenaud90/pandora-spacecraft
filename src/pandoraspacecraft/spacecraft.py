@@ -11,13 +11,16 @@ from astropy.constants import c
 from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astropy.utils.data import cache_contents
+import cartopy.crs as ccrs
+
 
 from . import is_test_mode, log
 from .utils import (
-    convert_tles,
     create_meta_kernel,
     create_meta_test_kernel,
     vec_to_coord,
+    PANDORADIRECTIONS,
+    angle_between,
 )
 
 
@@ -105,7 +108,7 @@ class Spacecraft(object):
                 "https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/TestMeta.txt"
             ]
         else:
-            convert_tles(run_all=False)
+            # convert_tles_to_spk(run_all=False)
             log.info(
                 "`pandoraspacecraft` is not in test mode, and will download and use kernels if available."
             )
@@ -116,6 +119,10 @@ class Spacecraft(object):
         spiceypy.kclear()
         spiceypy.furnsh(self.meta_kernel)
         self.start_time, self.end_time = self._get_kernel_start_and_end_times()
+
+    def print_meta_kernel(self):
+        with open(self.meta_kernel, "r") as file:
+            return file.read()
 
     def _get_all_kernel_start_and_end_times(self):
         # Get a list of loaded kernels
@@ -151,13 +158,15 @@ class Spacecraft(object):
                     end_et.append(interval_end)
                 except Exception:
                     continue
+        if start_et == []:
+            return np.asarray([np.nan]), np.asarray([np.nan])
         start_time = Time(spiceypy.et2datetime(start_et), scale="utc")
         end_time = Time(spiceypy.et2datetime(end_et), scale="utc")
         return start_time, end_time
 
     def _get_kernel_start_and_end_times(self):
         start, end = self._get_all_kernel_start_and_end_times()
-        return start.min(), end.min()
+        return start.min(), end.max()
 
     def __repr__(self):
         return "Spacecraft"
@@ -415,7 +424,7 @@ class Spacecraft(object):
             return ra_ab_recentered[:, 0] * u.deg, dec_ab_recentered[:, 0] * u.deg
         return ra_ab_recentered * u.deg, dec_ab_recentered * u.deg
 
-    def plot_earth(self, ax=None):
+    def plot_earth3d(self, ax=None):
         earth_rad = spiceypy.bodvrd("EARTH", "RADII", 3)[1][0]
         u = np.linspace(0, 2 * np.pi, 50)
         v = np.linspace(0, np.pi, 50)
@@ -438,7 +447,7 @@ class Spacecraft(object):
         )
         return ax
 
-    def plot_position(self, time, ax=None):
+    def plot_position3d(self, time, ax=None):
         time
         position = self.get_spacecraft_position(time, "EARTH").value
 
@@ -454,6 +463,16 @@ class Spacecraft(object):
             aspect="equal",
         )
         return ax
+
+    def plot_earth_subpoint(self, time):
+        fig = plt.figure(dpi=150)
+        ax = plt.axes(projection=ccrs.PlateCarree())
+
+        lon, lat = self.get_earth_subpoint(time)
+        ax.coastlines()
+        ax.scatter(lon.value, lat.value, s=0.1, transform=ccrs.PlateCarree(), c="r")
+        plt.show()
+        return fig
 
     def get_earth_subpoint(self, time) -> u.Quantity:
         """Returns the lattitude and longitude of the point underneath Pandora, accounting for light travel time and aberations.
@@ -610,7 +629,7 @@ class Spacecraft(object):
             * u.km
         )
 
-    def get_angle_to_body(self, time, coord, body="SUN") -> u.Quantity:
+    def predict_angle_to_body(self, time, coord, body="SUN") -> u.Quantity:
         """Returns the angle between Pandora and the specified body in degrees.
 
         Parameters
@@ -628,13 +647,151 @@ class Spacecraft(object):
             pos = -self.get_spacecraft_position(time, body.split("_LIMB")[0])
         else:
             pos = -self.get_spacecraft_position(time, body)
-        angle = coord.separation(vec_to_coord(*pos.T)).deg
+        angle = coord.separation(vec_to_coord(*pos.value.T)).deg
         if body.endswith("_LIMB"):
             R = spiceypy.bodvrd(body.split("_LIMB")[0], "RADII", 3)[1][0]
             # print(norm)
             angle_limb = np.rad2deg(np.arcsin((R) / (np.linalg.norm(pos, axis=1))))
             angle -= angle_limb
         return angle * u.deg
+
+    def get_angle_to_body(self, time, direction="boresight", body="SUN") -> u.Quantity:
+        """Returns the angle between Pandora from a particular direction to the specified body in degrees at a particular time.
+        This is evaluated from the actual pointing of Pandora.
+
+        Parameters
+        ----------
+        time: astropy.time.Time
+            Time array at which to estimate position.
+
+        Returns
+        -------
+        angle : u.Quantity
+            Angle between Pandora and the body in degrees.
+        """
+        time = _process_time(time)
+        if body.endswith("_LIMB"):
+            pos = -self.get_spacecraft_position(time, body.split("_LIMB")[0])
+        else:
+            pos = -self.get_spacecraft_position(time, body)
+        pointing_vecs = self.get_pointing_vec(time, direction=direction)
+        body_vecs = pos.to(u.km).value
+        angle = np.rad2deg(angle_between(pointing_vecs, body_vecs))
+        if body.endswith("_LIMB"):
+            R = spiceypy.bodvrd(body.split("_LIMB")[0], "RADII", 3)[1][0]
+            # print(norm)
+            angle_limb = np.rad2deg(
+                np.arcsin((R) / (np.linalg.norm(pos.to(u.km).value, axis=1)))
+            )
+            angle -= angle_limb
+        return angle * u.deg
+
+    def get_pointing_vec(self, time: Time, direction=[0, 0, 1]) -> npt.NDArray:
+        """Returns the vector that Pandora was pointing at for the specified time.
+
+        Parameters
+        ----------
+        time: astropy.time.Time
+            Time array at which to estimate position.
+
+        Returns
+        -------
+        vector : npt.NDArray
+            Pointing vector
+        """
+        time = _process_time(time)
+        direction = [
+            PANDORADIRECTIONS[direction] if isinstance(direction, str) else direction
+        ][0]
+        ets = np.asarray([spiceypy.unitim(t.jd, "JED", "ET") for t in time])
+        sclkdps = np.asarray([spiceypy.sce2c(-167395, et) for et in ets])
+        vec = np.zeros((len(ets), 3)) * np.nan
+        try:
+            for idx, sclkdp in enumerate(sclkdps):
+                vec[idx] = spiceypy.ckgp(-167395000, sclkdp, 0.0, "J2000")[0].dot(
+                    direction
+                )
+
+        except spiceypy.NotFoundError:
+            raise BadEphemeris(
+                "The time you have requested is outside of the time range where pointing data exists for this spacecraft."
+            )
+        return vec
+
+    def get_pointing_radec(self, time: Time, direction=[0, 0, 1]) -> u.Quantity:
+        """Returns the RA and Dec that Pandora was pointing at for the specified time.
+
+        Parameters
+        ----------
+        time: astropy.time.Time
+            Time array at which to estimate position.
+
+        Returns
+        -------
+        ra : u.Quantity
+            Right Ascention
+        dec: u.Quantity
+            Declination
+        """
+        time = _process_time(time)
+        direction = [
+            PANDORADIRECTIONS[direction] if isinstance(direction, str) else direction
+        ][0]
+        ets = np.asarray([spiceypy.unitim(t.jd, "JED", "ET") for t in time])
+        sclkdps = np.asarray([spiceypy.sce2c(-167395, et) for et in ets])
+        ra, dec = np.zeros((2, len(ets))) * np.nan
+        try:
+            for idx, sclkdp in enumerate(sclkdps):
+                boresight_j2000 = spiceypy.ckgp(-167395000, sclkdp, 0.0, "J2000")[
+                    0
+                ].dot(direction)
+                ra[idx], dec[idx] = np.rad2deg(spiceypy.recrad(boresight_j2000)[1:])
+
+        except spiceypy.NotFoundError:
+            raise BadEphemeris(
+                "The time you have requested is outside of the time range where pointing data exists for this spacecraft."
+            )
+        return ra * u.deg, dec * u.deg
+
+    def get_earth_lonlat(self, time, direction):
+        times = _process_time(time)
+        direction = [
+            PANDORADIRECTIONS[direction] if isinstance(direction, str) else direction
+        ][0]
+        lon, lat = np.zeros((2, len(times)))
+        for tdx, time in enumerate(times):
+            et = spiceypy.str2et(time.isot)
+            # state, _ = spiceypy.spkezr(
+            #     f"{self.spacecraft_code}", et, "IAU_EARTH", "LT+S", "EARTH"
+            # )
+            # sc_pos = state[:3]  # km
+
+            # rotation from spacecraft frame to IAU_EARTH
+            # rot = spiceypy.pxform("PANDORA_SC", "IAU_EARTH", et)
+
+            # transform to Earth-fixed frame
+            # x_earth = rot @ direction
+            try:
+                spoint, _, _ = spiceypy.sincpt(
+                    "ELLIPSOID",
+                    "EARTH",
+                    et,
+                    "IAU_EARTH",
+                    "LT+S",
+                    f"{self.spacecraft_code}",
+                    "PANDORA_SC",
+                    direction,
+                )
+            except:
+                lat[tdx] = np.nan
+                lon[tdx] = np.nan
+                continue
+
+            _, lon1, lat1 = spiceypy.reclat(spoint)
+
+            lat[tdx] = np.degrees(lat1)
+            lon[tdx] = np.degrees(lon1)
+        return lon, lat
 
 
 class PandoraSpacecraft(Spacecraft):

@@ -51,11 +51,14 @@ Version and Date
     Version 0.0.10 -- March 16, 2026 -- Andrew Gardner. 
        -  Re-align the instrument to the body frame.
 
+    Version 0.0.11 -- March 19, 2026 -- Andrew Gardner. 
+       -  Re-named to frames to match the current spacecraft number -- Christina Hedges
+
    Pandora Frame Kernel Version:
 
       \begindata
 
-         TEXT_KERNEL_ID += 'PANDORA_FRAMES V0.0.10 16-MARCH-2026 FK'
+         TEXT_KERNEL_ID += 'PANDORA_FRAMES V0.0.11 18-MARCH-2026 FK'
 
       \begintext
 
@@ -202,34 +205,34 @@ PANDORA NAIF ID Codes -- Definitions
        \begindata
 
           NAIF_BODY_NAME += ( 'PANDORA'                 )
-          NAIF_BODY_CODE += ( -99152                    )
+          NAIF_BODY_CODE += ( -167395                    )
 
           NAIF_BODY_NAME += ( 'PANDORA_SC'              )
-          NAIF_BODY_CODE += ( -9915200                  )
+          NAIF_BODY_CODE += ( -167395000                  )
 
           NAIF_BODY_NAME += ( 'PANDORA_INSTR'           )
-          NAIF_BODY_CODE += ( -9915210                  )
+          NAIF_BODY_CODE += ( -167395010                  )
 
           NAIF_BODY_NAME += ( 'PANDORA_X_BEAM'          )
-          NAIF_BODY_CODE += ( -9915220                  )
+          NAIF_BODY_CODE += ( -167395020                  )
 
           NAIF_BODY_NAME += ( 'PANDORA_SOLAR_ARRAY_ARM' )
-          NAIF_BODY_CODE += ( -9915230                  )
+          NAIF_BODY_CODE += ( -167395030                  )
 
           NAIF_BODY_NAME += ( 'PANDORA_SOLAR_ARRAY'     )
-          NAIF_BODY_CODE += ( -9915231                  )
+          NAIF_BODY_CODE += ( -167395031                  )
 
           NAIF_BODY_NAME += ( 'PANDORA_NST1'            )
-          NAIF_BODY_CODE += ( -9915241                  )
+          NAIF_BODY_CODE += ( -167395041                  )
 
           NAIF_BODY_NAME += ( 'PANDORA_NST2'            )
-          NAIF_BODY_CODE += ( -9915242                  )
+          NAIF_BODY_CODE += ( -167395042                  )
 
           NAIF_BODY_NAME += ( 'PANDORA_GPS'             )
-          NAIF_BODY_CODE += ( -9915250                  )
+          NAIF_BODY_CODE += ( -167395050                  )
 
           NAIF_BODY_NAME += ( 'PANDORA_SHIELD'          )
-          NAIF_BODY_CODE += ( -9915260                  )
+          NAIF_BODY_CODE += ( -167395060                  )
 
       \begintext
 
@@ -261,18 +264,18 @@ Pandora Frames
       Frame Name                Relative To             Type      Frame ID
       =======================   ===================     =======   ========
 
-   Spacecraft Body Frame (-992520x):
+   Spacecraft Body Frame (-167395x):
    ----------------------
-      PANDORA_SC                J2000                   CK        -9915200
+      PANDORA_SC                J2000                   CK        -167395000
 
-   Instrument Frames (-991521x):
+   Instrument Frames (-167395x):
    ------------------------------
-      PANDORA_INSTR             PANDORA_SC              FIXED     -9915210
+      PANDORA_INSTR             PANDORA_SC              FIXED     -167395010
 
-   Star Tracker Frames (-991524x):
+   Star Tracker Frames (-1673954x):
    ------------------------------
-      PANDORA_NST1              PANDORA_SC              FIXED     -9915241
-      PANDORA_NST2              PANDORA_SC              FIXED     -9915242
+      PANDORA_NST1              PANDORA_SC              FIXED     -167395041
+      PANDORA_NST2              PANDORA_SC              FIXED     -167395042
 
 Pandora Frames Hierarchy
 ----------------------------------------------------------
@@ -309,13 +312,13 @@ Spacecraft Frame (PANDORA_SC)
 
       \begindata
 
-         FRAME_PANDORA_SC         = -9915200
-         FRAME_-9915200_NAME      = 'PANDORA_SC'
-         FRAME_-9915200_CLASS     = 3
-         FRAME_-9915200_CLASS_ID  = -9915200
-         FRAME_-9915200_CENTER    = -99152
-         CK_-9915200_SCLK         = -99152
-         CK_-9915200_SPK          = -99152
+         FRAME_PANDORA_SC         = -167395000
+         FRAME_-167395000_NAME      = 'PANDORA_SC'
+         FRAME_-167395000_CLASS     = 3
+         FRAME_-167395000_CLASS_ID  = -167395000
+         FRAME_-167395000_CENTER    = -167395
+         CK_-167395000_SCLK         = -167395
+         CK_-167395000_SPK          = -167395
 
       \begintext
 
@@ -342,16 +345,16 @@ Pandora Instrument Boresight Frame (PANDORA_INSTR)
 
       \begindata
 
-         FRAME_PANDORA_INSTR        = -9915210
-         FRAME_-9915210_NAME        = 'PANDORA_INSTR'
-         FRAME_-9915210_CLASS       = 4
-         FRAME_-9915210_CLASS_ID    = -9915210
-         FRAME_-9915210_CENTER      = -99152
-         TKFRAME_-9915210_SPEC      = 'ANGLES'
-         TKFRAME_-9915210_RELATIVE  = 'PANDORA_SC'
-         TKFRAME_-9915210_ANGLES    = (  0.0,    0.0,   0.0 )
-         TKFRAME_-9915210_AXES      = (    1,      2,     3 )
-         TKFRAME_-9915210_UNITS     = 'DEGREES'
+         FRAME_PANDORA_INSTR        = -167395010
+         FRAME_-167395010_NAME        = 'PANDORA_INSTR'
+         FRAME_-167395010_CLASS       = 4
+         FRAME_-167395010_CLASS_ID    = -167395010
+         FRAME_-167395010_CENTER      = -167395
+         TKFRAME_-167395010_SPEC      = 'ANGLES'
+         TKFRAME_-167395010_RELATIVE  = 'PANDORA_SC'
+         TKFRAME_-167395010_ANGLES    = (  0.0,    0.0,   0.0 )
+         TKFRAME_-167395010_AXES      = (    1,      2,     3 )
+         TKFRAME_-167395010_UNITS     = 'DEGREES'
 
       \begintext
 
@@ -371,26 +374,26 @@ Pandora Star Tracker Frames (PANDORA_{NST1,NST2})
 
       \begindata
 
-         FRAME_PANDORA_NST1           = -9915241
-         FRAME_-9915241_NAME          = 'PANDORA_NST1'
-         FRAME_-9915241_CLASS         = 4
-         FRAME_-9915241_CLASS_ID      = -9915241
-         FRAME_-9915241_CENTER        = -99152
-         TKFRAME_-9915241_SPEC        = 'ANGLES'
-         TKFRAME_-9915241_RELATIVE    = 'PANDORA_SC'
-         TKFRAME_-9915241_ANGLES      = ( 31.9455, 42.8783, -45.89 )
-         TKFRAME_-9915241_AXES        = ( 1, 2, 3 )
-         TKFRAME_-9915241_UNITS       = 'DEGREES'
+         FRAME_PANDORA_NST1           = -167395041
+         FRAME_-167395041_NAME          = 'PANDORA_NST1'
+         FRAME_-167395041_CLASS         = 4
+         FRAME_-167395041_CLASS_ID      = -167395041
+         FRAME_-167395041_CENTER        = -167395
+         TKFRAME_-167395041_SPEC        = 'ANGLES'
+         TKFRAME_-167395041_RELATIVE    = 'PANDORA_SC'
+         TKFRAME_-167395041_ANGLES      = ( 31.9455, 42.8783, -45.89 )
+         TKFRAME_-167395041_AXES        = ( 1, 2, 3 )
+         TKFRAME_-167395041_UNITS       = 'DEGREES'
 
-         FRAME_PANDORA_NST2           = -9915242
-         FRAME_-9915242_NAME          = 'PANDORA_NST2'
-         FRAME_-9915242_CLASS         = 4
-         FRAME_-9915242_CLASS_ID      = -9915242
-         FRAME_-9915242_CENTER        = -99152
-         TKFRAME_-9915242_SPEC        = 'ANGLES'
-         TKFRAME_-9915242_RELATIVE    = 'PANDORA_SC'
-         TKFRAME_-9915242_ANGLES      = ( -31.9455, 42.8783, -45.89 )
-         TKFRAME_-9915242_AXES        = ( 1, 2, 3 )
-         TKFRAME_-9915242_UNITS       = 'DEGREES'
+         FRAME_PANDORA_NST2           = -167395042
+         FRAME_-167395042_NAME          = 'PANDORA_NST2'
+         FRAME_-167395042_CLASS         = 4
+         FRAME_-167395042_CLASS_ID      = -167395042
+         FRAME_-167395042_CENTER        = -167395
+         TKFRAME_-167395042_SPEC        = 'ANGLES'
+         TKFRAME_-167395042_RELATIVE    = 'PANDORA_SC'
+         TKFRAME_-167395042_ANGLES      = ( -31.9455, 42.8783, -45.89 )
+         TKFRAME_-167395042_AXES        = ( 1, 2, 3 )
+         TKFRAME_-167395042_UNITS       = 'DEGREES'
 
       \begintext

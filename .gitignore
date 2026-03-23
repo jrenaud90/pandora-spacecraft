@@ -7,7 +7,11 @@ src/pandoraspacecraft/data/kernels/TESS
 src/pandoraspacecraft/data/Meta.txt
 src/pandoraspacecraft/data/noradtles
 src/pandoraspacecraft/data/buildspice/quats_to_ck.tm
-src/pandoraspacecraft/data/Pandora/*.spk
+src/pandoraspacecraft/data/kernels/Pandora/*.spk
+src/pandoraspacecraft/data/kernels/Pandora/*.bsp
+src/pandoraspacecraft/data/kernels/Pandora/*.ck
+src/pandoraspacecraft/data/kernels/Pandora/*.bc
+src/pandoraspacecraft/data/buildspice
 
 
 
