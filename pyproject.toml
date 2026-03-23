@@ -5,6 +5,13 @@ description = ""
 authors = ["Christina Hedges <christina.l.hedges@nasa.gov>"]
 readme = "docs/README.md"
 
+exclude = [
+  "src/pandoraspacecraft/data/kernels/Pandora/*.bsp",
+  "src/pandoraspacecraft/data/kernels/Pandora/*.bc",
+  "src/pandoraspacecraft/data/tle/*.tle",
+]
+
+
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
 spiceypy = "^6.0.0"
