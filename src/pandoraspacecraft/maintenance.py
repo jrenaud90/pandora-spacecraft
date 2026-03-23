@@ -1,23 +1,24 @@
+# flake8: noqa
 """Tools to maintain package"""
-
-from astropy.utils.data import cache_contents, import_file_to_cache
-from astropy.utils.data import clear_download_cache as _astropy_clear_download_cache
-
-from . import CACHEDIR, PACKAGEDIR, TLEDIR
-from .utils import get_file_paths, truncate_directory_string, META_START, META_END
 
 import os
 import shutil
+import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-import subprocess
 from glob import glob
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import spiceypy
 from astropy.time import Time
+from astropy.utils.data import cache_contents
+from astropy.utils.data import clear_download_cache as _astropy_clear_download_cache
+from astropy.utils.data import import_file_to_cache
+
+from . import CACHEDIR, PACKAGEDIR, TLEDIR
+from .utils import META_END, META_START, get_file_paths, truncate_directory_string
 
 
 def convert_telemetry_to_cks(fname):

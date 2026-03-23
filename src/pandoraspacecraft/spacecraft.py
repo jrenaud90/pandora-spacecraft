@@ -14,13 +14,8 @@ from astropy.time import Time
 from astropy.utils.data import cache_contents
 
 from . import is_test_mode, log
-from .utils import (
-    PANDORADIRECTIONS,
-    angle_between,
-    create_meta_kernel,
-    vec_to_coord,
-)
 from .maintenance import create_meta_test_kernel
+from .utils import PANDORADIRECTIONS, angle_between, create_meta_kernel, vec_to_coord
 
 
 class BadEphemeris(Exception):
