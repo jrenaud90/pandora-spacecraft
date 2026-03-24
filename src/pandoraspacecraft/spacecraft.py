@@ -3,8 +3,6 @@
 from typing import Union
 
 import astropy.units as u
-
-# import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -459,15 +457,16 @@ class Spacecraft(object):
         )
         return ax
 
-    def plot_earth_subpoint(self, time):
-        fig = plt.figure(dpi=150)
-        ax = plt.axes(projection=ccrs.PlateCarree())
+    # def plot_earth_subpoint(self, time):
 
-        lon, lat = self.get_earth_subpoint(time)
-        ax.coastlines()
-        ax.scatter(lon.value, lat.value, s=0.1, transform=ccrs.PlateCarree(), c="r")
-        plt.show()
-        return fig
+    #     fig = plt.figure(dpi=150)
+    #     ax = plt.axes(projection=ccrs.PlateCarree())
+
+    #     lon, lat = self.get_earth_subpoint(time)
+    #     ax.coastlines()
+    #     ax.scatter(lon.value, lat.value, s=0.1, transform=ccrs.PlateCarree(), c="r")
+    #     plt.show()
+    #     return fig
 
     def get_earth_subpoint(self, time) -> u.Quantity:
         """Returns the lattitude and longitude of the point underneath Pandora, accounting for light travel time and aberations.
