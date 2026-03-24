@@ -16,6 +16,7 @@ from astropy.time import Time
 from astropy.utils.data import cache_contents
 from astropy.utils.data import clear_download_cache as _astropy_clear_download_cache
 from astropy.utils.data import import_file_to_cache
+from tqdm import tqdm
 
 from . import CACHEDIR, PACKAGEDIR, TLEDIR
 from .utils import META_END, META_START, get_file_paths, truncate_directory_string
@@ -25,7 +26,7 @@ def convert_telemetry_to_cks(fname):
     """Converts input bus quaternions to CK file"""
     Path(CACHEDIR).mkdir(parents=True, exist_ok=True)
     qdf = pd.read_csv(fname)
-    outname = fname.split("/")[-1].split(".")[0]
+    outname = "pandora"
 
     qt = Time(
         [
@@ -123,7 +124,7 @@ def convert_telemetry_to_spks(fname):
     """Converts input bus position and velocity to SPK file"""
     Path(CACHEDIR).mkdir(parents=True, exist_ok=True)
     df = pd.read_csv(fname)
-    outname = fname.split("/")[-1].split(".")[0]
+    outname = "pandora"
 
     qt = Time(
         [
@@ -236,71 +237,71 @@ LEAPSECONDS_FILE   = '{"/".join(file_paths[1].split("/")[-2:])}'
         os.remove(setup_path)
 
 
-def update_cks(quaternions_csv_filename):
-    df = pd.read_csv(quaternions_csv_filename)
-    qt = Time(
-        [
-            datetime(1970, 1, 1, tzinfo=timezone.utc)
-            + timedelta(seconds=t / 1000)
-            - timedelta(seconds=37)
-            for t in df.time.values
-        ]
-    )
-    k = qt.jd > 2461052
-    df, qt = df[k], qt[k]
+# def update_cks(quaternions_csv_filename):
+#     df = pd.read_csv(quaternions_csv_filename)
+#     qt = Time(
+#         [
+#             datetime(1970, 1, 1, tzinfo=timezone.utc)
+#             + timedelta(seconds=t / 1000)
+#             - timedelta(seconds=37)
+#             for t in df.time.values
+#         ]
+#     )
+#     k = qt.jd > 2461052
+#     df, qt = df[k], qt[k]
 
-    # Split at every 7 days since launch
-    ph = qt.jd - ((qt.jd - 2461052) % 7)
-    splits = np.where(np.diff(ph) == 7)[0] + 1
+#     # Split at every 7 days since launch
+#     ph = qt.jd - ((qt.jd - 2461052) % 7)
+#     splits = np.where(np.diff(ph) == 7)[0] + 1
 
-    with tempfile.TemporaryDirectory() as d:
-        for a, b in zip(np.hstack([splits[:-1]]), splits[1:]):
-            buffer = 1000
-            a = np.min([0, a - buffer])
-            b = np.min([b + buffer, len(df)])
-            df1 = df[a:b]
-            chunk_name = f"pandora_ck_{int(np.round(qt.jd[a] - 2461052)):05}"
-            path = Path(d) / f"{chunk_name}.csv"
-            df1.to_csv(path, index=False)
-            convert_telemetry_to_cks(str(path))
-            shutil.copy(
-                cache_contents("pandoraspacecraft")[
-                    f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/{chunk_name}.bc"
-                ],
-                PACKAGEDIR + f"/data/kernels/Pandora/{chunk_name}.bc",
-            )
+#     with tempfile.TemporaryDirectory() as d:
+#         for a, b in zip(np.hstack([splits[:-1]]), splits[1:]):
+#             buffer = 10000
+#             a = np.min([0, a - buffer])
+#             b = np.min([b + buffer, len(df)])
+#             df1 = df[a:b]
+#             chunk_name = f"pandora_ck_{int(np.round(qt.jd[a] - 2461052)):05}"
+#             path = Path(d) / f"{chunk_name}.csv"
+#             df1.to_csv(path, index=False)
+#             convert_telemetry_to_cks(str(path))
+#             shutil.copy(
+#                 cache_contents("pandoraspacecraft")[
+#                     f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/{chunk_name}.bc"
+#                 ],
+#                 PACKAGEDIR + f"/data/kernels/Pandora/{chunk_name}.bc",
+#             )
 
 
-def update_spks(positions_csv_filename):
-    df = pd.read_csv(positions_csv_filename)
-    qt = Time(
-        [
-            datetime(1970, 1, 1, tzinfo=timezone.utc)
-            + timedelta(seconds=t / 1000)
-            - timedelta(seconds=37)
-            for t in df.time.values
-        ]
-    )
-    k = qt.jd > 2461052
-    df, qt = df[k], qt[k]
+# def update_spks(positions_csv_filename):
+#     df = pd.read_csv(positions_csv_filename)
+#     qt = Time(
+#         [
+#             datetime(1970, 1, 1, tzinfo=timezone.utc)
+#             + timedelta(seconds=t / 1000)
+#             - timedelta(seconds=37)
+#             for t in df.time.values
+#         ]
+#     )
+#     k = qt.jd > 2461052
+#     df, qt = df[k], qt[k]
 
-    # Split at every 7 days since launch
-    ph = qt.jd - ((qt.jd - 2461052) % 7)
-    splits = np.where(np.diff(ph) == 7)[0] + 1
+#     # Split at every 7 days since launch
+#     ph = qt.jd - ((qt.jd - 2461052) % 7)
+#     splits = np.where(np.diff(ph) == 7)[0] + 1
 
-    with tempfile.TemporaryDirectory() as d:
-        for a, b in zip(np.hstack([splits[:-1]]), splits[1:]):
-            df1 = df[a:b]
-            chunk_name = f"pandora_spk_{int(np.round(qt.jd[a] - 2461052)):05}"
-            path = Path(d) / f"{chunk_name}.csv"
-            df1.to_csv(path, index=False)
-            convert_telemetry_to_spks(str(path))
-            shutil.copy(
-                cache_contents("pandoraspacecraft")[
-                    f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/{chunk_name}.bsp"
-                ],
-                PACKAGEDIR + f"/data/kernels/Pandora/{chunk_name}.bsp",
-            )
+#     with tempfile.TemporaryDirectory() as d:
+#         for a, b in zip(np.hstack([splits[:-1]]), splits[1:]):
+#             df1 = df[a:b]
+#             chunk_name = f"pandora_spk_{int(np.round(qt.jd[a] - 2461052)):05}"
+#             path = Path(d) / f"{chunk_name}.csv"
+#             df1.to_csv(path, index=False)
+#             convert_telemetry_to_spks(str(path))
+#             shutil.copy(
+#                 cache_contents("pandoraspacecraft")[
+#                     f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/{chunk_name}.bsp"
+#                 ],
+#                 PACKAGEDIR + f"/data/kernels/Pandora/{chunk_name}.bsp",
+#             )
 
 
 def make_test_data():
@@ -524,4 +525,133 @@ def create_meta_test_kernel():
         temp_file_name,
         pkgname="pandoraspacecraft",
     )
+    return
+
+
+def split_spk():
+    """Splits the existing SPK file into many day long files, puts them in the package directory for upload to github."""
+    # convert_telemetry_to_spks(fname, outname="pandora")
+    file_paths = ["", ""]
+    file_paths[0] = cache_contents("pandoraspacecraft")[
+        "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls"
+    ]
+    file_paths[1] = cache_contents("pandoraspacecraft")[
+        "https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/pandora.bsp"
+    ]
+    r = subprocess.run(
+        [
+            "brief",
+            "-utc",
+            "/".join(file_paths[0].split("/")[-2:]),
+            "/".join(file_paths[1].split("/")[-2:]),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=CACHEDIR,
+    ).stdout
+    start_time, end_time = np.asarray(r.split("\n")[-3].strip().split("  "))[[0, -1]]
+    start_time = Time.strptime(start_time, format_string="%Y-%b-%d %H:%M:%S.%f")
+    end_time = Time.strptime(end_time, format_string="%Y-%b-%d %H:%M:%S.%f")
+    times = Time(
+        np.arange(np.floor(start_time.jd), np.ceil(end_time.jd), 1), format="jd"
+    )
+
+    for t1, t2 in tqdm(zip(times[:-1], times[1:]), total=len(times) - 1):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".tm") as f:
+
+            def get_split_string():
+                return f"""LEAPSECONDS_KERNEL = {"/".join(file_paths[0].split("/")[-2:])}
+SPK_KERNEL         = pandora_{t1.strftime("%Y%j")}.bsp
+BEGIN_TIME         = {t1.strftime("%Y %b %d %H:%M:%S UTC").upper()}
+END_TIME           = {t2.strftime("%Y %b %d %H:%M:%S UTC").upper()}
+SOURCE_SPK_KERNEL  = {"/".join(file_paths[1].split("/")[-2:])}
+"""
+
+            f.write(get_split_string())
+            f.flush()
+            setup_path = f.name
+            subprocess.run(
+                ["spkmerge", setup_path],
+                text=True,
+                cwd=CACHEDIR,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            shutil.move(
+                f"{CACHEDIR}pandora_{t1.strftime('%Y%j')}.bsp",
+                PACKAGEDIR + f"/data/kernels/Pandora/pandora_{t1.strftime('%Y%j')}.bsp",
+            )
+
+    return
+
+
+def split_ck():
+    """Splits the existing SPK file into many day long files, puts them in the package directory for upload to github."""
+    # convert_telemetry_to_spks(fname, outname="pandora")
+    file_paths = ["", "", ""]
+    file_paths[0] = cache_contents("pandoraspacecraft")[
+        "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls"
+    ]
+    file_paths[1] = cache_contents("pandoraspacecraft")[
+        "https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/pandora_sclkscet.0005.tsc"
+    ]
+    file_paths[2] = cache_contents("pandoraspacecraft")[
+        "https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/pandora.bc"
+    ]
+    r = subprocess.run(
+        [
+            "ckbrief",
+            "/".join(file_paths[2].split("/")[-2:]),
+            "/".join(file_paths[0].split("/")[-2:]),
+            "/".join(file_paths[1].split("/")[-2:]),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=CACHEDIR,
+    ).stdout
+    start_time, end_time = (
+        " ".join(np.asarray(r.split("\n")[-3].strip().split(" "))[:2]),
+        " ".join(np.asarray(r.split("\n")[-3].strip().split(" "))[2:4]),
+    )
+
+    start_time = Time.strptime(start_time, format_string="%Y-%b-%d %H:%M:%S.%f")
+    end_time = Time.strptime(end_time, format_string="%Y-%b-%d %H:%M:%S.%f")
+    times = Time(
+        np.arange(np.floor(start_time.jd), np.ceil(end_time.jd), 1), format="jd"
+    )
+
+    for t1, t2 in tqdm(zip(times[:-1], times[1:]), total=len(times) - 1):
+        subprocess.run(
+            [
+                "ckslicer",
+                "-lsk",
+                "/".join(file_paths[0].split("/")[-2:]),
+                "-sclk",
+                "/".join(file_paths[1].split("/")[-2:]),
+                "-inputck",
+                "/".join(file_paths[2].split("/")[-2:]),
+                "-outputck",
+                f"pandora_{t1.strftime('%Y%j')}.bc",
+                "-id",
+                "-167395000",
+                "-timetype",
+                "utc",
+                "-start",
+                t1.strftime("%Y %b %d %H:%M:%S UTC").upper(),
+                "-stop",
+                t2.strftime("%Y %b %d %H:%M:%S UTC").upper(),
+            ],
+            check=True,
+            cwd=CACHEDIR,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        shutil.move(
+            f"{CACHEDIR}pandora_{t1.strftime('%Y%j')}.bc",
+            PACKAGEDIR + f"/data/kernels/Pandora/pandora_{t1.strftime('%Y%j')}.bc",
+        )
+
     return
