@@ -20,7 +20,6 @@ astropy = ">=5.0.0"
 pandas = "^2.2.3"
 sgp4 = "^2.25"
 tqdm = "^4.67.3"
-cartopy = ">=0.2"
 
 [tool.poetry.group.dev]
 optional = true

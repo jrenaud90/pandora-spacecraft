@@ -123,14 +123,14 @@ def create_meta_kernel():
     path_values = truncate_directory_string(cache_dirs[0])
     path_symbols = ["cache"]
     kernels_to_load = ["$cache/" + path[len(cache_dirs[0]) + 1 :] for path in paths]
-    for dirname in glob(f"{KERNELDIR}/*"):
-        if "testkernels" in dirname:
-            continue
-        for d in truncate_directory_string(dirname):
-            path_values.append(d)
-        path_symbols.append(dirname.split("/")[-1])
-        for d in np.sort(glob(dirname + "/*")):
-            kernels_to_load.append("$" + dirname.split("/")[-1] + d[len(dirname) :])
+    # for dirname in glob(f"{KERNELDIR}/*"):
+    #     if "testkernels" in dirname:
+    #         continue
+    #     for d in truncate_directory_string(dirname):
+    #         path_values.append(d)
+    #     path_symbols.append(dirname.split("/")[-1])
+    #     for d in np.sort(glob(dirname + "/*")):
+    #         kernels_to_load.append("$" + dirname.split("/")[-1] + d[len(dirname) :])
 
     def format_list(l, pad=10):
         if len(l) == 0:

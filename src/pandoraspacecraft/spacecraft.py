@@ -3,7 +3,8 @@
 from typing import Union
 
 import astropy.units as u
-import cartopy.crs as ccrs
+
+# import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt

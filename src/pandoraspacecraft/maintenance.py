@@ -255,6 +255,9 @@ def update_cks(quaternions_csv_filename):
 
     with tempfile.TemporaryDirectory() as d:
         for a, b in zip(np.hstack([splits[:-1]]), splits[1:]):
+            buffer = 1000
+            a = np.min([0, a - buffer])
+            b = np.min([b + buffer, len(df)])
             df1 = df[a:b]
             chunk_name = f"pandora_ck_{int(np.round(qt.jd[a] - 2461052)):05}"
             path = Path(d) / f"{chunk_name}.csv"
