@@ -19,7 +19,7 @@ from astropy.utils.data import clear_download_cache as _astropy_clear_download_c
 from astropy.utils.data import import_file_to_cache
 from tqdm import tqdm
 
-from . import CACHEDIR, PACKAGEDIR, TLEDIR
+from . import CACHEDIR, PACKAGEDIR, TLEDIR, KERNELDIR
 from .utils import (
     META_END,
     META_START,
@@ -225,49 +225,59 @@ def convert_telemetry_to_spks(fname):
     left, right = np.asarray(
         find_merged_gaps((qt.jd - qt.jd[0]) * u.day.to(u.second), mdt * 3, mdt * 10)
     ).T
-    a = np.hstack([1, np.asarray([left, right]).T.ravel(), len(qt) - 1])
+    a = np.hstack([np.asarray([left, right]).T.ravel()])
 
     if os.path.isfile(f"{CACHEDIR}pandora.bsp"):
         os.remove(f"{CACHEDIR}pandora.bsp")
     if os.path.isfile(f"{CACHEDIR}input_telemetry.csv"):
         os.remove(f"{CACHEDIR}input_telemetry.csv")
-    for tdx, l, r in tqdm(zip(np.arange(0, len(a)), a[:-1], a[1:]), total=len(a)):
-        if (tdx % 2) == 1:
-            spktype = 5
-        else:
-            spktype = 13
-        df1 = pd.DataFrame(
-            np.hstack(
-                [
-                    qt.isot[l : r + 1][:, None],
-                    positions[l : r + 1],
-                    velocities[l : r + 1],
-                ]
+
+    for spktype_order in [13, 5]:
+        # we append 13 first because we want to prioritize interpolated times over propagated
+        for tdx, l, r in tqdm(zip(np.arange(0, len(a)), a[:-1], a[1:]), total=len(a)):
+            if (tdx % 2) == 1:
+                spktype = 5
+                buffer = 40
+                l1 = np.max([l - buffer, 0])
+                r1 = np.min([r + buffer, len(df)])
+            else:
+                spktype = 13
+                l1 = l
+                r1 = r
+            if spktype != spktype_order:
+                continue
+            df1 = pd.DataFrame(
+                np.hstack(
+                    [
+                        qt.isot[l1 : r1 + 1][:, None],
+                        positions[l1 : r1 + 1],
+                        velocities[l1 : r1 + 1],
+                    ]
+                )
             )
-        )
-        df1.to_csv(f"{CACHEDIR}input_telemetry.csv", header=False, index=False)
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".tm", delete=False) as f:
-            f.write([tospk_string13 if spktype == 13 else tospk_string5][0])
-            setup_path = f.name
+            df1.to_csv(f"{CACHEDIR}input_telemetry.csv", header=False, index=False)
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".tm", delete=False) as f:
+                f.write([tospk_string13 if spktype == 13 else tospk_string5][0])
+                setup_path = f.name
 
-        subprocess.run(
-            [
-                "mkspk",
-                "-setup",
-                setup_path,
-                "-input",
-                "input_telemetry.csv",
-                "-output",
-                "pandora.bsp",
-            ],
-            cwd=CACHEDIR,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        Path(setup_path).unlink()
+            subprocess.run(
+                [
+                    "mkspk",
+                    "-setup",
+                    setup_path,
+                    "-input",
+                    "input_telemetry.csv",
+                    "-output",
+                    "pandora.bsp",
+                ],
+                cwd=CACHEDIR,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            Path(setup_path).unlink()
 
-    if os.path.isfile(f"{CACHEDIR}input_telemetry.csv"):
-        os.remove(f"{CACHEDIR}input_telemetry.csv")
+        if os.path.isfile(f"{CACHEDIR}input_telemetry.csv"):
+            os.remove(f"{CACHEDIR}input_telemetry.csv")
 
     import_file_to_cache(
         f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/pandora.bsp",
@@ -534,7 +544,7 @@ def make_test_data():
     create_meta_test_kernel()
 
 
-def convert_tles_to_spk(run_all=True):
+def convert_tles_to_spk():
     Path(CACHEDIR).mkdir(parents=True, exist_ok=True)
     tle_paths = np.sort(glob(TLEDIR + "*.tle"))
     for f in tle_paths:
@@ -543,7 +553,6 @@ def convert_tles_to_spk(run_all=True):
         text = text.replace("1 99152U", "1 67395U")
         text = text.replace("2 99152", "2 67395")
         p.write_text(text)
-    cc = cache_contents(pkgname="pandoraspacecraft")
     for tle_path in tle_paths:
         p = Path(tle_path)
         # read raw bytes
@@ -561,10 +570,6 @@ def convert_tles_to_spk(run_all=True):
             sc_id = f"{file.read()}".split("\\n2 ")[1].split(" ")[0]
         tle_name = tle_path.split("/")[-1]
 
-        if not run_all:
-            if np.any([tle_name.split(".")[0] in item for item, value in cc.items()]):
-                continue
-
         import_file_to_cache(
             url_key=f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/tle/{tle_name}",
             filename=tle_path,
@@ -578,28 +583,30 @@ def convert_tles_to_spk(run_all=True):
         }
         file_paths = get_file_paths(KERNELS)
         totle_string = f"""\\begindata
-            
-            INPUT_DATA_TYPE   = 'TL_ELEMENTS'
-            OUTPUT_SPK_TYPE   = 10
-            
-            INPUT_DATA_FILE   = '{"/".join(file_paths[0].split("/")[-2:])}'
-            OUTPUT_SPK_FILE   = 'pandora.bsp'
-            
-            LEAPSECONDS_FILE  = '{"/".join(file_paths[1].split("/")[-2:])}'
-            PCK_FILE          = '{"/".join(file_paths[2].split("/")[-2:])}'
-                    
-            TLE_START_PAD = '2 days'
-            TLE_STOP_PAD  = '{"2 days" if tle_path != tle_paths[-1] else "365 days"}'
 
-            CENTER_ID         = 399
-            REF_FRAME_NAME    = 'J2000'
-            
-            OBJECT_ID         = {sc_id}
-            OBJECT_NAME       = 'PANDORA SPACECRAFT'
-            
-            PRODUCER_ID = 'PandoraDPC'
-            
-            \\begintext"""
+INPUT_DATA_TYPE   = 'TL_ELEMENTS'
+OUTPUT_SPK_TYPE   = 10
+
+INPUT_DATA_FILE   = '{"/".join(file_paths[0].split("/")[-2:])}'
+OUTPUT_SPK_FILE   = 'pandora.bsp'
+
+LEAPSECONDS_FILE  = '{"/".join(file_paths[1].split("/")[-2:])}'
+PCK_FILE          = '{"/".join(file_paths[2].split("/")[-2:])}'
+        
+TLE_START_PAD = '2 days'
+TLE_STOP_PAD  = '{"2 days" if tle_path != tle_paths[-1] else "365 days"}'
+
+CENTER_ID         = 399
+REF_FRAME_NAME    = 'J2000'
+
+OBJECT_ID         = {sc_id}
+OBJECT_NAME       = 'PANDORA SPACECRAFT'
+
+PRODUCER_ID = 'PandoraDPC'
+
+APPEND_TO_OUTPUT  = 'YES'
+
+\\begintext"""
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".tm", delete=False) as f:
             f.write(totle_string)
@@ -611,7 +618,7 @@ def convert_tles_to_spk(run_all=True):
                 "-setup",
                 setup_path,
                 "-output",
-                f"{tle_name.split('.tle')[0]}.spk",
+                "pandora_tle.bsp",
             ],
             cwd=CACHEDIR,
             check=True,
@@ -620,20 +627,6 @@ def convert_tles_to_spk(run_all=True):
         )
         Path(setup_path).unlink()
 
-        # shutil.move(
-        #     f"{CACHEDIR}/pandora.bsp",
-        #     # f"{KERNELDIR}/Pandora/{tle_name.split('.tle')[0]}.spk",
-        #     f"{CACHEDIR}/{tle_name.split('.tle')[0]}.spk",
-        # )
-
-        import_file_to_cache(
-            f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/{tle_name.split('.tle')[0]}.spk",
-            f"{CACHEDIR}/{tle_name.split('.tle')[0]}.spk",
-            remove_original=True,
-            pkgname="pandoraspacecraft",
-            replace=False,
-        )
-
         _astropy_clear_download_cache(
             f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/tle/{tle_name}",
             "pandoraspacecraft",
@@ -641,6 +634,19 @@ def convert_tles_to_spk(run_all=True):
 
         if os.path.exists(setup_path):
             os.remove(setup_path)
+
+    shutil.move(
+        f"{CACHEDIR}pandora_tle.bsp",
+        f"{KERNELDIR}Pandora/pandora_tle.bsp",
+    )
+
+    # import_file_to_cache(
+    #     f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/{tle_name.split('.tle')[0]}.spk",
+    #     f"{CACHEDIR}/{tle_name.split('.tle')[0]}.spk",
+    #     remove_original=True,
+    #     pkgname="pandoraspacecraft",
+    #     replace=False,
+    # )
 
 
 def create_meta_test_kernel():

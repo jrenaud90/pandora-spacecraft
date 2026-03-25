@@ -1,11 +1,14 @@
-# v1.0.3
+# v1.0.7
+
+- Added a TLE only mode where users can use the SPK from TLEs
+
+# v1.0.6
 
 - Fixed bad SPKs by interleaving interpolation with two-body orbit propagation
 
 # v1.0.3
 
 - Split SPK and CK better
-
 
 # v1.0.0
 

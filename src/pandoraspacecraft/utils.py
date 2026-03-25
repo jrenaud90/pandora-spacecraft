@@ -85,45 +85,47 @@ def truncate_directory_string(directory_string):
     return lines
 
 
-def create_meta_kernel():
+def create_meta_kernel(tles_only=False):
     """Create a meta kernel out of the cached SPICE kernels"""
     KERNELS = {
         "naif0012.tls": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/",
         "de440.bsp": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/",
         "pck00011.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
     }
-    ndays = -1
-    for idx in np.arange(0, ndays + 1, 1):
-        t = (Time.strptime("2026011", format_string="%Y%j") + idx * u.day).strftime(
-            "%Y%j"
-        )
-        KERNELS[f"pandora_{t}.bc"] = (
-            "https://github.com/PandoraMission/pandora-spacecraft/raw/main/src/pandoraspacecraft/data/kernels/Pandora/"
-        )
-        KERNELS[f"pandora_{t}.bsp"] = (
-            "https://github.com/PandoraMission/pandora-spacecraft/raw/main/src/pandoraspacecraft/data/kernels/Pandora/"
-        )
+    if not tles_only:
+        ndays = -1
+        for idx in np.arange(0, ndays + 1, 1):
+            t = (Time.strptime("2026011", format_string="%Y%j") + idx * u.day).strftime(
+                "%Y%j"
+            )
+            KERNELS[f"pandora_{t}.bc"] = (
+                "https://github.com/PandoraMission/pandora-spacecraft/raw/main/src/pandoraspacecraft/data/kernels/Pandora/"
+            )
+            KERNELS[f"pandora_{t}.bsp"] = (
+                "https://github.com/PandoraMission/pandora-spacecraft/raw/main/src/pandoraspacecraft/data/kernels/Pandora/"
+            )
 
     paths = get_file_paths(KERNELS)
     cc = cache_contents(pkgname="pandoraspacecraft")
-    paths = np.hstack(
-        [
-            paths,
-            np.sort(
-                [
-                    value
-                    for item, value in cc.items()
-                    if (value not in paths)
-                    and (
-                        item.split("/")[-1].startswith("pandora")
-                        & (item.endswith(".spk"))
-                        | item.endswith(".bc")
-                        | item.endswith(".bsp")
-                    )
-                ]
-            ),
-        ]
-    )
+    if not tles_only:
+        paths = np.hstack(
+            [
+                paths,
+                np.sort(
+                    [
+                        value
+                        for item, value in cc.items()
+                        if (value not in paths)
+                        and (
+                            item.split("/")[-1].startswith("pandora")
+                            & (item.endswith(".spk"))
+                            | item.endswith(".bc")
+                            | item.endswith(".bsp")
+                        )
+                    ]
+                ),
+            ]
+        )
     if len(paths) == 0:
         raise ValueError(
             "Can not find any SPICE kernels. Check documentation on installation."
@@ -134,18 +136,31 @@ def create_meta_kernel():
             "You have provided multiple cache directories for SPICE kernels, try reinstalling."
         )
 
-    path_values = truncate_directory_string(cache_dirs[0])
-    path_symbols = ["cache"]
-    kernels_to_load = ["$cache/" + path[len(cache_dirs[0]) + 1 :] for path in paths]
+    path_values = []
+    path_symbols = []
+    kernels_to_load = []
+
     for dirname in glob(f"{KERNELDIR}/*"):
         if "testkernels" in dirname:
             continue
         for d in truncate_directory_string(dirname):
             path_values.append(d)
         path_symbols.append(dirname.split("/")[-1])
+        # TLE based SPK first, lowest priority
+        if tles_only:
+            for d in np.sort(glob(dirname + "/*")):
+                if d.endswith("pandora_tle.bsp"):
+                    kernels_to_load.append(
+                        "$" + dirname.split("/")[-1] + d[len(dirname) :]
+                    )
         for d in np.sort(glob(dirname + "/*")):
             if (not d.endswith("bsp")) and (not d.endswith("bc")):
                 kernels_to_load.append("$" + dirname.split("/")[-1] + d[len(dirname) :])
+    path_values.extend(truncate_directory_string(cache_dirs[0]))
+    path_symbols.extend(["cache"])
+    kernels_to_load.extend(
+        ["$cache/" + path[len(cache_dirs[0]) + 1 :] for path in paths]
+    )
 
     def format_list(l, pad=10):
         if len(l) == 0:

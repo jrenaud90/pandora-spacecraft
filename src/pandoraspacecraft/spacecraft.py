@@ -1,7 +1,7 @@
 """Classes for working with the orbits of spacecraft"""
 
 from typing import Union
-
+import subprocess
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
@@ -73,7 +73,7 @@ class Spacecraft(object):
         Computes the RA and Dec of a target after applying velocity aberration.
     """
 
-    def __init__(self):
+    def __init__(self, tles_only=False):
         """
         Initializes the Spacecraft object and loads SPICE kernels.
 
@@ -105,7 +105,7 @@ class Spacecraft(object):
             log.info(
                 "`pandoraspacecraft` is not in test mode, and will download and use kernels if available."
             )
-            create_meta_kernel()
+            create_meta_kernel(tles_only=tles_only)
             self.meta_kernel_path = cache_contents(pkgname="pandoraspacecraft")[
                 "https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/Meta.txt"
             ]
@@ -119,10 +119,32 @@ class Spacecraft(object):
             return file.read()
 
     def _get_all_kernel_start_and_end_times(self):
+
+        def get_SPK_start_and_end_times(kernel_name):
+            result = subprocess.run(
+                ["brief", kernel_name], capture_output=True, text=True, check=True
+            ).stdout.split("\n")
+            if not (f"{self.spacecraft_code}" in "\n".join(result[:9])):
+                return [], []
+            start_times, end_times = np.asarray(
+                [np.asarray(r.strip().split("  "))[[0, -1]] for r in result[9:]]
+            ).T
+            start_times = [
+                Time.strptime(start_time, format_string="%Y %b %d %H:%M:%S.%f")
+                for start_time in start_times
+                if start_time != ""
+            ]
+            end_times = [
+                Time.strptime(end_time, format_string="%Y %b %d %H:%M:%S.%f")
+                for end_time in end_times
+                if end_time != ""
+            ]
+            return start_times, end_times
+
         # Get a list of loaded kernels
         kernel_list = spiceypy.ktotal("ALL")  # Get the count of all loaded kernels
-        start_et = []
-        end_et = []
+        start = []
+        end = []
 
         for i in range(kernel_list):
             kernel_name = spiceypy.kdata(i, "ALL")[0]
@@ -130,33 +152,37 @@ class Spacecraft(object):
             # Check if the kernel is SPK or CK to calculate coverage
             kernel_type = spiceypy.kdata(i, "ALL")[1]
 
-            if kernel_type in ["SPK", "CK"]:
-                # Create a window for coverage
-                coverage_window = spiceypy.stypes.SPICEDOUBLE_CELL(2**10)
+            if kernel_type in ["SPK"]:
+                start_time, end_time = get_SPK_start_and_end_times(kernel_name)
+                start.extend(start_time)
+                end.extend(end_time)
+            #     # Create a window for coverage
+            #     coverage_window = spiceypy.stypes.SPICEDOUBLE_CELL(2**10)
 
-                # Query coverage for the specific kernel
-                try:
-                    if kernel_type == "SPK":
-                        spiceypy.spkcov(
-                            kernel_name, self.spacecraft_code, coverage_window
-                        )  # Replace with your NAIF ID
-                    else:
-                        continue
+            #     # Query coverage for the specific kernel
+            #     try:
+            #         if kernel_type == "SPK":
+            #             spiceypy.spkcov(
+            #                 kernel_name, self.spacecraft_code, coverage_window
+            #             )  # Replace with your NAIF ID
+            #         else:
+            #             continue
 
-                    # Extract start and end times for the current kernel
-                    interval_start = spiceypy.wnfetd(coverage_window, 0)[0]
-                    interval_end = spiceypy.wnfetd(coverage_window, 0)[1]
+            #         # Extract start and end times for the current kernel
+            #         interval_start = spiceypy.wnfetd(coverage_window, 0)[0]
+            #         interval_end = spiceypy.wnfetd(coverage_window, 0)[1]
 
-                    # Update the global start and end times
-                    start_et.append(interval_start)
-                    end_et.append(interval_end)
-                except Exception:
-                    continue
-        if start_et == []:
+            #         # Update the global start and end times
+            #         start_et.append(interval_start)
+            #         end_et.append(interval_end)
+
+            # except Exception:
+            #     continue
+        if start == []:
             return np.asarray([np.nan]), np.asarray([np.nan])
-        start_time = Time(spiceypy.et2datetime(start_et), scale="utc")
-        end_time = Time(spiceypy.et2datetime(end_et), scale="utc")
-        return start_time, end_time
+        # start_time = Time(spiceypy.et2datetime(start_et), scale="utc")
+        # end_time = Time(spiceypy.et2datetime(end_et), scale="utc")
+        return Time(start), Time(end)
 
     def _get_kernel_start_and_end_times(self):
         start, end = self._get_all_kernel_start_and_end_times()
