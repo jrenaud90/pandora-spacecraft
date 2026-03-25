@@ -85,12 +85,12 @@ and the positions and velocities over time which look like this:
 |  3 | 1.76815e+12 | 6596.09 | 1683.13 | -1570.3  | 1.88616 | -0.608106 | 7.2901  |
 |  4 | 1.76815e+12 | 6614.57 | 1676.95 | -1497.31 | 1.80899 | -0.627867 | 7.30822 |
 
-From a terminal or a notebook run the following to update CK and SPK
+From a terminal or a notebook run the following to update CK and SPK. First build a CK and SPK from your full set of telemetry
 
 ```python
-from pandoraspacecraft.maintenance import update_cks, update_spks
-update_cks(quaternions_csv_filename)
-update_spks(position_csv_filename)
+from pandoraspacecraft.maintenance import convert_telemetry_to_cks, convert_telemetry_to_spks
+convert_telemetry_to_cks(quaternions_csv_filename)
+convert_telemetry_to_spks(position_csv_filename)
 ```
 
 You can then restart your session and run the following to update the test data, if necessary. You would only do this if you changed the code base significantly or if you wanted to change the period of validity for the test data.

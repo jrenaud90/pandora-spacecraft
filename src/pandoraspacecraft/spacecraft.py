@@ -97,7 +97,7 @@ class Spacecraft(object):
             log.warning(
                 "`pandoraspacecraft` is in test mode, and will not download new kernels. Will truncated kernels."
             )
-            self.meta_kernel = cache_contents(pkgname="pandoraspacecraft")[
+            self.meta_kernel_path = cache_contents(pkgname="pandoraspacecraft")[
                 "https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/TestMeta.txt"
             ]
         else:
@@ -106,15 +106,16 @@ class Spacecraft(object):
                 "`pandoraspacecraft` is not in test mode, and will download and use kernels if available."
             )
             create_meta_kernel()
-            self.meta_kernel = cache_contents(pkgname="pandoraspacecraft")[
+            self.meta_kernel_path = cache_contents(pkgname="pandoraspacecraft")[
                 "https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/Meta.txt"
             ]
         spiceypy.kclear()
-        spiceypy.furnsh(self.meta_kernel)
+        spiceypy.furnsh(self.meta_kernel_path)
         self.start_time, self.end_time = self._get_kernel_start_and_end_times()
 
-    def print_meta_kernel(self):
-        with open(self.meta_kernel, "r") as file:
+    @property
+    def meta_kernel(self):
+        with open(self.meta_kernel_path, "r") as file:
             return file.read()
 
     def _get_all_kernel_start_and_end_times(self):

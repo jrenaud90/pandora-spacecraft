@@ -81,12 +81,15 @@ def create_meta_kernel():
         "de440.bsp": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/",
         "pck00011.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
     }
-    nweeks = 9
-    for idx in np.arange(7, 7 * nweeks, 7):
-        KERNELS[f"pandora_ck_{idx:05}.bc"] = (
+    ndays = 66
+    for idx in np.arange(0, ndays + 1, 1):
+        t = (Time.strptime("2026011", format_string="%Y%j") + idx * u.day).strftime(
+            "%Y%j"
+        )
+        KERNELS[f"pandora_{t}.bc"] = (
             "https://github.com/PandoraMission/pandora-spacecraft/raw/main/src/pandoraspacecraft/data/kernels/Pandora/"
         )
-        KERNELS[f"pandora_spk_{idx:05}.bsp"] = (
+        KERNELS[f"pandora_{t}.bsp"] = (
             "https://github.com/PandoraMission/pandora-spacecraft/raw/main/src/pandoraspacecraft/data/kernels/Pandora/"
         )
 
@@ -123,14 +126,15 @@ def create_meta_kernel():
     path_values = truncate_directory_string(cache_dirs[0])
     path_symbols = ["cache"]
     kernels_to_load = ["$cache/" + path[len(cache_dirs[0]) + 1 :] for path in paths]
-    # for dirname in glob(f"{KERNELDIR}/*"):
-    #     if "testkernels" in dirname:
-    #         continue
-    #     for d in truncate_directory_string(dirname):
-    #         path_values.append(d)
-    #     path_symbols.append(dirname.split("/")[-1])
-    #     for d in np.sort(glob(dirname + "/*")):
-    #         kernels_to_load.append("$" + dirname.split("/")[-1] + d[len(dirname) :])
+    for dirname in glob(f"{KERNELDIR}/*"):
+        if "testkernels" in dirname:
+            continue
+        for d in truncate_directory_string(dirname):
+            path_values.append(d)
+        path_symbols.append(dirname.split("/")[-1])
+        for d in np.sort(glob(dirname + "/*")):
+            if (not d.endswith("bsp")) and (not d.endswith("bc")):
+                kernels_to_load.append("$" + dirname.split("/")[-1] + d[len(dirname) :])
 
     def format_list(l, pad=10):
         if len(l) == 0:
