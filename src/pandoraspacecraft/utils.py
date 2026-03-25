@@ -51,8 +51,20 @@ PANDORADIRECTIONS = {
 }
 
 
-def clear_cache():
-    _astropy_clear_download_cache(pkgname="pandoraspacecraft")
+def clear_cache(all=False):
+    if all:
+        _astropy_clear_download_cache(pkgname="pandoraspacecraft")
+    else:
+        toclear = [
+            key
+            for key in cache_contents("pandoraspacecraft").keys()
+            if key.split("/")[-1].startswith("pandora")
+            and (key.endswith("bsp") | key.endswith("bc"))
+        ]
+        [
+            _astropy_clear_download_cache(url, pkgname="pandoraspacecraft")
+            for url in toclear
+        ]
 
 
 def truncate_directory_string(directory_string):
@@ -80,7 +92,7 @@ def create_meta_kernel():
         "de440.bsp": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/",
         "pck00011.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
     }
-    ndays = 66
+    ndays = -1
     for idx in np.arange(0, ndays + 1, 1):
         t = (Time.strptime("2026011", format_string="%Y%j") + idx * u.day).strftime(
             "%Y%j"
@@ -324,3 +336,66 @@ def angle_between(a, b):
     if a.ndim == 0:
         return np.arccos(cos_theta[0])
     return np.arccos(cos_theta)  # radians
+
+
+import shutil
+import tempfile
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import astropy.units as u
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from astropy.time import Time
+from astropy.utils.data import cache_contents
+
+import pandoraspacecraft as ps
+from pandoraspacecraft.maintenance import *
+
+
+def find_merged_gaps(t, gap_threshold=100.0, merge_threshold=1000.0):
+    """
+    Return merged gap edges as index tuples (left_index, right_index).
+
+    Each tuple corresponds to a gap spanning:
+        t[left_index] -> t[right_index]
+    """
+
+    t = np.asarray(t, dtype=float)
+    if t.ndim != 1:
+        raise ValueError("t must be 1D")
+    if len(t) < 2:
+        return []
+    if np.any(np.diff(t) < 0):
+        raise ValueError("t must be sorted ascending")
+
+    dt = np.diff(t)
+
+    # indices i where gap is between t[i] and t[i+1]
+    gap_idx = np.where(dt > gap_threshold)[0]
+    if len(gap_idx) == 0:
+        return []
+
+    # initialize first gap
+    cur_left = gap_idx[0]
+    cur_right = gap_idx[0] + 1
+
+    merged = []
+
+    for i in gap_idx[1:]:
+        left = i
+        right = i + 1
+
+        separation = t[left] - t[cur_right]
+
+        if separation <= merge_threshold:
+            # extend current merged gap
+            cur_right = right
+        else:
+            merged.append((cur_left, cur_right))
+            cur_left, cur_right = left, right
+
+    merged.append((cur_left, cur_right))
+
+    return merged

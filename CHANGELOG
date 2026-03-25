@@ -1,5 +1,9 @@
 # v1.0.3
 
+- Fixed bad SPKs by interleaving interpolation with two-body orbit propagation
+
+# v1.0.3
+
 - Split SPK and CK better
 
 

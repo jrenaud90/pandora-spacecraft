@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from glob import glob
 from pathlib import Path
 
+import astropy.units as u
 import numpy as np
 import pandas as pd
 import spiceypy
@@ -19,14 +20,19 @@ from astropy.utils.data import import_file_to_cache
 from tqdm import tqdm
 
 from . import CACHEDIR, PACKAGEDIR, TLEDIR
-from .utils import META_END, META_START, get_file_paths, truncate_directory_string
+from .utils import (
+    META_END,
+    META_START,
+    find_merged_gaps,
+    get_file_paths,
+    truncate_directory_string,
+)
 
 
 def convert_telemetry_to_cks(fname):
     """Converts input bus quaternions to CK file"""
     Path(CACHEDIR).mkdir(parents=True, exist_ok=True)
     qdf = pd.read_csv(fname)
-    outname = "pandora"
 
     qt = Time(
         [
@@ -77,6 +83,7 @@ def convert_telemetry_to_cks(fname):
     INSTRUMENT_ID            = -167395000
     REFERENCE_FRAME_NAME     = 'J2000'
     ANGULAR_RATE_PRESENT     = 'NO'
+    MAXIMUM_VALID_INTERVAL.  = 60.0
     
     CK_SEGMENT_ID            = 'SPACECRAFT ATTITUDE'
     PRODUCER_ID              = 'Christina Hedges'
@@ -95,7 +102,7 @@ def convert_telemetry_to_cks(fname):
             "msopck",
             setup_path,
             f"{'/'.join(file_paths[0].split('/')[-2:])}",
-            f"{outname}.bc",
+            f"pandora.bc",
         ],
         cwd=CACHEDIR,
         stdout=subprocess.DEVNULL,
@@ -104,8 +111,8 @@ def convert_telemetry_to_cks(fname):
 
     Path(setup_path).unlink()
     import_file_to_cache(
-        f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/{outname}.bc",
-        f"{CACHEDIR}/{outname}.bc",
+        f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/pandora.bc",
+        f"{CACHEDIR}/pandora.bc",
         remove_original=True,
         pkgname="pandoraspacecraft",
         replace=False,
@@ -124,7 +131,6 @@ def convert_telemetry_to_spks(fname):
     """Converts input bus position and velocity to SPK file"""
     Path(CACHEDIR).mkdir(parents=True, exist_ok=True)
     df = pd.read_csv(fname)
-    outname = "pandora"
 
     qt = Time(
         [
@@ -161,80 +167,252 @@ def convert_telemetry_to_spks(fname):
     k = k & np.roll(k, 1) & np.roll(k, -1)
     qt, positions, velocities = qt[k], positions[k], velocities[k]
 
-    pd.DataFrame(np.hstack([qt.isot[:, None], positions, velocities])).to_csv(
-        f"{CACHEDIR}input_telemetry.csv", header=False, index=False
-    )
-    import_file_to_cache(
-        url_key=f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/ck/input_telemetry.csv",
-        filename=f"{CACHEDIR}input_telemetry.csv",
-        remove_original=True,
-        pkgname="pandoraspacecraft",
-        replace=False,
-    )
-
     KERNELS = {
-        "input_telemetry.csv": "https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/ck/",
         "naif0012.tls": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/",
+        "pck00011.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
+        "gm_de440.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
     }
     file_paths = get_file_paths(KERNELS)
 
-    tospk_string = f"""\\begindata
+    tospk_string13 = f"""\\begindata
 
-INPUT_DATA_TYPE    = 'STATES'
-OUTPUT_SPK_TYPE    = 13
-POLYNOM_DEGREE = 3
+    INPUT_DATA_TYPE    = 'STATES'
+    OUTPUT_SPK_TYPE    = 13
+    POLYNOM_DEGREE     = 3
 
-OBJECT_ID          = -167395
-CENTER_ID          = 399
-REF_FRAME_NAME     = 'J2000'
-PRODUCER_ID        = 'Christina Hedges'
+    OBJECT_ID          = -167395
+    CENTER_ID          = 399
+    REF_FRAME_NAME     = 'J2000'
+    PRODUCER_ID        = 'Christina Hedges'
 
-DATA_ORDER         = 'EPOCH X Y Z VX VY VZ'
-DATA_DELIMITER     = ','
-LINES_PER_RECORD   = 1
-INPUT_DATA_UNITS   = ( 'DISTANCES=km' )
+    DATA_ORDER         = 'EPOCH X Y Z VX VY VZ'
+    DATA_DELIMITER     = ','
+    LINES_PER_RECORD   = 1
+    INPUT_DATA_UNITS   = ( 'DISTANCES=km' )
 
-IGNORE_FIRST_LINE  = 0
-LEAPSECONDS_FILE   = '{"/".join(file_paths[1].split("/")[-2:])}'
+    IGNORE_FIRST_LINE  = 0
+    LEAPSECONDS_FILE   = '{"/".join(file_paths[0].split("/")[-2:])}'
 
-\\begintext"""
+    APPEND_TO_OUTPUT  = 'YES'
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".tm", delete=False) as f:
-        f.write(tospk_string)
-        setup_path = f.name
+    \\begintext"""
 
-    subprocess.run(
-        [
-            "mkspk",
-            "-setup",
-            setup_path,
-            "-input",
-            f"{'/'.join(file_paths[0].split('/')[-2:])}",
-            "-output",
-            f"{outname}.bsp",
-        ],
-        cwd=CACHEDIR,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    tospk_string5 = f"""\\begindata
 
-    Path(setup_path).unlink()
+    INPUT_DATA_TYPE    = 'STATES'
+    OUTPUT_SPK_TYPE    = 5
+
+    OBJECT_ID          = -167395
+    CENTER_ID          = 399
+    REF_FRAME_NAME     = 'J2000'
+    PRODUCER_ID        = 'Christina Hedges'
+
+    DATA_ORDER         = 'EPOCH X Y Z VX VY VZ'
+    DATA_DELIMITER     = ','
+    LINES_PER_RECORD   = 1
+    INPUT_DATA_UNITS   = ( 'DISTANCES=km' )
+
+    IGNORE_FIRST_LINE  = 0
+    LEAPSECONDS_FILE   = '{"/".join(file_paths[0].split("/")[-2:])}'
+    PCK_FILE           = '{"/".join(file_paths[2].split("/")[-2:])}'
+
+    APPEND_TO_OUTPUT  = 'YES'
+
+    \\begintext"""
+
+    dt = np.diff(qt.jd) * u.day.to(u.second)
+    mdt = np.median(dt)
+    left, right = np.asarray(
+        find_merged_gaps((qt.jd - qt.jd[0]) * u.day.to(u.second), mdt * 3, mdt * 10)
+    ).T
+    a = np.hstack([1, np.asarray([left, right]).T.ravel(), len(qt) - 1])
+
+    if os.path.isfile(f"{CACHEDIR}pandora.bsp"):
+        os.remove(f"{CACHEDIR}pandora.bsp")
+    if os.path.isfile(f"{CACHEDIR}input_telemetry.csv"):
+        os.remove(f"{CACHEDIR}input_telemetry.csv")
+    for tdx, l, r in tqdm(zip(np.arange(0, len(a)), a[:-1], a[1:]), total=len(a)):
+        if (tdx % 2) == 1:
+            spktype = 5
+        else:
+            spktype = 13
+        df1 = pd.DataFrame(
+            np.hstack(
+                [
+                    qt.isot[l : r + 1][:, None],
+                    positions[l : r + 1],
+                    velocities[l : r + 1],
+                ]
+            )
+        )
+        df1.to_csv(f"{CACHEDIR}input_telemetry.csv", header=False, index=False)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".tm", delete=False) as f:
+            f.write([tospk_string13 if spktype == 13 else tospk_string5][0])
+            setup_path = f.name
+
+        subprocess.run(
+            [
+                "mkspk",
+                "-setup",
+                setup_path,
+                "-input",
+                "input_telemetry.csv",
+                "-output",
+                "pandora.bsp",
+            ],
+            cwd=CACHEDIR,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        Path(setup_path).unlink()
+
+    if os.path.isfile(f"{CACHEDIR}input_telemetry.csv"):
+        os.remove(f"{CACHEDIR}input_telemetry.csv")
 
     import_file_to_cache(
-        f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/{outname}.bsp",
-        f"{CACHEDIR}{outname}.bsp",
+        f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/pandora.bsp",
+        f"{CACHEDIR}pandora.bsp",
         remove_original=True,
         pkgname="pandoraspacecraft",
         replace=False,
     )
 
-    _astropy_clear_download_cache(
-        f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/ck/input_telemetry.csv",
-        "pandoraspacecraft",
-    )
 
-    if os.path.exists(setup_path):
-        os.remove(setup_path)
+#     df = pd.read_csv(fname)
+#     outname = "pandora"
+
+#     qt = Time(
+#         [
+#             datetime(1970, 1, 1, tzinfo=timezone.utc)
+#             + timedelta(seconds=t / 1000)
+#             - timedelta(seconds=37)
+#             for t in df.time.values
+#         ]
+#     )
+#     positions = df[["p1", "p2", "p3"]].values
+#     velocities = df[["v1", "v2", "v3"]].values
+
+#     norm = np.linalg.norm(positions, axis=1)
+#     resid = np.abs(norm - np.median(norm))
+#     k = resid < 4 * np.median(resid)
+#     k = k & np.roll(k, 1) & np.roll(k, -1)
+#     qt, positions, velocities = qt[k], positions[k], velocities[k]
+
+#     norm = np.linalg.norm(velocities, axis=1)
+#     resid = np.abs(norm - np.median(norm))
+#     k = resid < 4 * np.median(resid)
+#     k = k & np.roll(k, 1) & np.roll(k, -1)
+#     qt, positions, velocities = qt[k], positions[k], velocities[k]
+
+#     norm = np.gradient(np.linalg.norm(positions, axis=1), qt.jd)
+#     resid = np.abs(norm - np.median(norm))
+#     k = resid < 4 * np.median(resid)
+#     k = k & np.roll(k, 1) & np.roll(k, -1)
+#     qt, positions, velocities = qt[k], positions[k], velocities[k]
+
+#     norm = np.gradient(np.linalg.norm(velocities, axis=1), qt.jd)
+#     resid = np.abs(norm - np.median(norm))
+#     k = resid < 4 * np.median(resid)
+#     k = k & np.roll(k, 1) & np.roll(k, -1)
+#     qt, positions, velocities = qt[k], positions[k], velocities[k]
+
+#     pd.DataFrame(np.hstack([qt.isot[:, None], positions, velocities])).to_csv(
+#         f"{CACHEDIR}input_telemetry.csv", header=False, index=False
+#     )
+#     import_file_to_cache(
+#         url_key=f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/ck/input_telemetry.csv",
+#         filename=f"{CACHEDIR}input_telemetry.csv",
+#         remove_original=True,
+#         pkgname="pandoraspacecraft",
+#         replace=False,
+#     )
+
+#     KERNELS = {
+#         "input_telemetry.csv": "https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/ck/",
+#         "naif0012.tls": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/",
+#         "pck00011.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
+#         "gm_de440.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
+#     }
+#     file_paths = get_file_paths(KERNELS)
+
+#     tospk_string = f"""\\begindata
+
+# INPUT_DATA_TYPE    = 'STATES'
+# OUTPUT_SPK_TYPE    = 9
+# POLYNOM_DEGREE = 3
+
+# OBJECT_ID          = -167395
+# CENTER_ID          = 399
+# REF_FRAME_NAME     = 'J2000'
+# PRODUCER_ID        = 'Christina Hedges'
+
+# DATA_ORDER         = 'EPOCH X Y Z VX VY VZ'
+# DATA_DELIMITER     = ','
+# LINES_PER_RECORD   = 1
+# INPUT_DATA_UNITS   = ( 'DISTANCES=km' )
+
+# IGNORE_FIRST_LINE  = 0
+# LEAPSECONDS_FILE   = '{"/".join(file_paths[1].split("/")[-2:])}'
+
+# \\begintext"""
+
+#     tospk_string = f"""\\begindata
+
+# INPUT_DATA_TYPE    = 'STATES'
+# OUTPUT_SPK_TYPE    = 5
+
+# OBJECT_ID          = -167395
+# CENTER_ID          = 399
+# REF_FRAME_NAME     = 'J2000'
+# PRODUCER_ID        = 'Christina Hedges'
+
+# DATA_ORDER         = 'EPOCH X Y Z VX VY VZ'
+# DATA_DELIMITER     = ','
+# LINES_PER_RECORD   = 1
+# INPUT_DATA_UNITS   = ( 'DISTANCES=km' )
+
+# IGNORE_FIRST_LINE  = 0
+# LEAPSECONDS_FILE   = '{"/".join(file_paths[1].split("/")[-2:])}'
+# PCK_FILE           = '{"/".join(file_paths[3].split("/")[-2:])}'
+
+# \\begintext"""
+
+#     with tempfile.NamedTemporaryFile(mode="w", suffix=".tm", delete=False) as f:
+#         f.write(tospk_string)
+#         setup_path = f.name
+#     print(tospk_string)
+#     subprocess.run(
+#         [
+#             "mkspk",
+#             "-setup",
+#             setup_path,
+#             "-input",
+#             f"{'/'.join(file_paths[0].split('/')[-2:])}",
+#             "-output",
+#             f"{outname}.bsp",
+#         ],
+#         cwd=CACHEDIR,
+#         # stdout=subprocess.DEVNULL,
+#         # stderr=subprocess.DEVNULL,
+#     )
+
+#     Path(setup_path).unlink()
+
+#     import_file_to_cache(
+#         f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/kernels/Pandora/{outname}.bsp",
+#         f"{CACHEDIR}{outname}.bsp",
+#         remove_original=True,
+#         pkgname="pandoraspacecraft",
+#         replace=False,
+#     )
+
+#     _astropy_clear_download_cache(
+#         f"https://github.com/pandoramission/pandoraspacecraft/src/pandoraspacecraft/data/ck/input_telemetry.csv",
+#         "pandoraspacecraft",
+#     )
+
+#     if os.path.exists(setup_path):
+#         os.remove(setup_path)
 
 
 # def update_cks(quaternions_csv_filename):

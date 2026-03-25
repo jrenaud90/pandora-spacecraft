@@ -442,7 +442,6 @@ class Spacecraft(object):
         return ax
 
     def plot_position3d(self, time, ax=None):
-        time
         position = self.get_spacecraft_position(time, "EARTH").value
 
         if ax is None:
