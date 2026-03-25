@@ -553,8 +553,9 @@ def split_spk():
     start_time, end_time = np.asarray(r.split("\n")[-3].strip().split("  "))[[0, -1]]
     start_time = Time.strptime(start_time, format_string="%Y-%b-%d %H:%M:%S.%f")
     end_time = Time.strptime(end_time, format_string="%Y-%b-%d %H:%M:%S.%f")
+    # whole days only!
     times = Time(
-        np.arange(np.floor(start_time.jd), np.ceil(end_time.jd), 1), format="jd"
+        np.arange(np.ceil(start_time.jd), np.floor(end_time.jd), 1), format="jd"
     )
 
     for t1, t2 in tqdm(zip(times[:-1], times[1:]), total=len(times) - 1):
@@ -619,8 +620,9 @@ def split_ck():
 
     start_time = Time.strptime(start_time, format_string="%Y-%b-%d %H:%M:%S.%f")
     end_time = Time.strptime(end_time, format_string="%Y-%b-%d %H:%M:%S.%f")
+    # whole days only!
     times = Time(
-        np.arange(np.floor(start_time.jd), np.ceil(end_time.jd), 1), format="jd"
+        np.arange(np.ceil(start_time.jd), np.floor(end_time.jd), 1), format="jd"
     )
 
     for t1, t2 in tqdm(zip(times[:-1], times[1:]), total=len(times) - 1):

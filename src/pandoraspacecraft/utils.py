@@ -53,7 +53,6 @@ PANDORADIRECTIONS = {
 
 def clear_cache():
     _astropy_clear_download_cache(pkgname="pandoraspacecraft")
-    [os.remove(path) for path in glob(f"{KERNELDIR}/Pandora/*.spk")]
 
 
 def truncate_directory_string(directory_string):
