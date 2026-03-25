@@ -1,7 +1,8 @@
 """Classes for working with the orbits of spacecraft"""
 
-from typing import Union
 import subprocess
+from typing import Union
+
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
@@ -153,31 +154,30 @@ class Spacecraft(object):
             kernel_type = spiceypy.kdata(i, "ALL")[1]
 
             if kernel_type in ["SPK"]:
-                start_time, end_time = get_SPK_start_and_end_times(kernel_name)
-                start.extend(start_time)
-                end.extend(end_time)
-            #     # Create a window for coverage
-            #     coverage_window = spiceypy.stypes.SPICEDOUBLE_CELL(2**10)
+                try:
+                    start_time, end_time = get_SPK_start_and_end_times(kernel_name)
+                    start.extend(start_time)
+                    end.extend(end_time)
+                except Exception:
+                    # Create a window for coverage
+                    coverage_window = spiceypy.stypes.SPICEDOUBLE_CELL(2**10)
 
-            #     # Query coverage for the specific kernel
-            #     try:
-            #         if kernel_type == "SPK":
-            #             spiceypy.spkcov(
-            #                 kernel_name, self.spacecraft_code, coverage_window
-            #             )  # Replace with your NAIF ID
-            #         else:
-            #             continue
+                    # Query coverage for the specific kernel
+                    spiceypy.spkcov(
+                        kernel_name, self.spacecraft_code, coverage_window
+                    )  # Replace with your NAIF ID
 
-            #         # Extract start and end times for the current kernel
-            #         interval_start = spiceypy.wnfetd(coverage_window, 0)[0]
-            #         interval_end = spiceypy.wnfetd(coverage_window, 0)[1]
+                    # Extract start and end times for the current kernel
+                    interval_start = spiceypy.wnfetd(coverage_window, 0)[0]
+                    interval_end = spiceypy.wnfetd(coverage_window, 0)[1]
 
-            #         # Update the global start and end times
-            #         start_et.append(interval_start)
-            #         end_et.append(interval_end)
-
-            # except Exception:
-            #     continue
+                    # Update the global start and end times
+                    start.append(
+                        Time(spiceypy.et2datetime(interval_start), scale="utc")
+                    )
+                    end.append(Time(spiceypy.et2datetime(interval_end), scale="utc"))
+                finally:
+                    continue
         if start == []:
             return np.asarray([np.nan]), np.asarray([np.nan])
         # start_time = Time(spiceypy.et2datetime(start_et), scale="utc")

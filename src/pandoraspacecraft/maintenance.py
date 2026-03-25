@@ -19,7 +19,7 @@ from astropy.utils.data import clear_download_cache as _astropy_clear_download_c
 from astropy.utils.data import import_file_to_cache
 from tqdm import tqdm
 
-from . import CACHEDIR, PACKAGEDIR, TLEDIR, KERNELDIR
+from . import CACHEDIR, KERNELDIR, PACKAGEDIR, TLEDIR
 from .utils import (
     META_END,
     META_START,
