@@ -163,9 +163,7 @@ class Spacecraft(object):
                     coverage_window = spiceypy.stypes.SPICEDOUBLE_CELL(2**10)
 
                     # Query coverage for the specific kernel
-                    spiceypy.spkcov(
-                        kernel_name, self.spacecraft_code, coverage_window
-                    )  # Replace with your NAIF ID
+                    spiceypy.spkcov(kernel_name, self.spacecraft_code, coverage_window)
 
                     # Extract start and end times for the current kernel
                     interval_start = spiceypy.wnfetd(coverage_window, 0)[0]

@@ -93,6 +93,16 @@ convert_telemetry_to_cks(quaternions_csv_filename)
 convert_telemetry_to_spks(position_csv_filename)
 ```
 
+You can then split these into each day using
+
+```python
+from pandoraspacecraft.maintenance import split_ck, split_spk
+split_ck()
+split_spk()
+```
+
+This will add the files to your package directory. You can then add and push these to GitHub. 
+
 You can then restart your session and run the following to update the test data, if necessary. You would only do this if you changed the code base significantly or if you wanted to change the period of validity for the test data.
 
 ```python
@@ -100,7 +110,7 @@ from pandoraspacecraft.maintenance import make_test_data
 make_test_data()
 ```
 
-When you have finished your updates you should make sure to push them to the `pandoraspacecraft` repo. Inside the `utils.py` module update `nweeks = X` to the number of weeks of CK and SPK files you have now made.
+When you have finished your updates you should make sure to push them to the `pandoraspacecraft` repo. Inside the `utils.py` module update `ndays = X` to the number of weeks of CK and SPK files that should now be available.
 
 These files are not included with the distribution of the package to pip and are instead downloaded and cached whenever you run the package. This ensures that the files are shared between multiple installs across different environments.
 
