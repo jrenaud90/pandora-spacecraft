@@ -6,6 +6,9 @@ nav:
   - Home: README.md
   - Example Usage: demo.ipynb
   - API: spacecraft.md
+  - Tutorials: 
+    - background.ipynb
+    - startrackers.ipynb
   
 theme:
   name: "material"
