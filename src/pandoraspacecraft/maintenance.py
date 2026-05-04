@@ -36,11 +36,11 @@ def convert_telemetry_to_cks(fname):
 
     qt = Time(
         [
-            datetime(1970, 1, 1, tzinfo=timezone.utc)
-            + timedelta(seconds=t / 1000)
-            - timedelta(seconds=37)
+            datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=t / 1000)
+            # - timedelta(seconds=37)
             for t in qdf.time.values
-        ]
+        ],
+        scale="utc",
     )
     quats = qdf[["q1", "q2", "q3", "q4"]].values
     k = np.isclose(np.linalg.norm(quats, axis=1), 1, atol=1e-4)
@@ -134,11 +134,11 @@ def convert_telemetry_to_spks(fname):
 
     qt = Time(
         [
-            datetime(1970, 1, 1, tzinfo=timezone.utc)
-            + timedelta(seconds=t / 1000)
-            - timedelta(seconds=37)
+            datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=t / 1000)
+            # - timedelta(seconds=37)
             for t in df.time.values
-        ]
+        ],
+        scale="utc",
     )
     positions = df[["p1", "p2", "p3"]].values
     velocities = df[["v1", "v2", "v3"]].values
