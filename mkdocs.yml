@@ -9,6 +9,7 @@ nav:
   - Tutorials: 
     - background.ipynb
     - startrackers.ipynb
+    - tlemode.ipynb
   
 theme:
   name: "material"
