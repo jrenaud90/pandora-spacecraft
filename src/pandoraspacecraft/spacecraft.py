@@ -708,7 +708,13 @@ class Spacecraft(object):
             except ValueError:
                 raise ValueError("Can not calculate pointing vector for Pandora.")
         else:
-            assert isinstance(pointing_vecs, np.NDArray)
+            if isinstance(pointing_vecs, list):
+                pointing_vecs = np.asarray(pointing_vecs)
+            assert isinstance(pointing_vecs, np.ndarray)
+            if pointing_vecs.ndim == 1:
+                pointing_vecs = np.asarray([pointing_vecs])
+            if pointing_vecs.shape == (1, 3):
+                pointing_vecs = pointing_vecs * np.ones((len(time), 1), dtype=float)
             assert pointing_vecs.shape == (len(time), 3)
 
         body_vecs = pos.to(u.km).value

@@ -29,6 +29,11 @@ def test_pandora_truncated():
     )
     assert ra_result.shape == (1,)
     assert dec_result.shape == (1,)
+
+    # ps.get_angle_to_body(time, "z", "earth")
+    # ps.get_angle_to_body(time, [0, 0, 1], "earth")
+    ps.get_angle_to_body(time, "z", "earth", pointing_vecs=[0, 0, 1])
+
     pandoraspacecraft.disable_test_mode()
 
 
