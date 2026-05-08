@@ -45,3 +45,10 @@ def test_utils():
     ra2, dec2 = pandoraspacecraft.utils.radec_from_vec(vec)
     assert np.isclose(ra, ra2)
     assert np.isclose(dec, dec2)
+
+    assert np.allclose(
+        [ra, dec],
+        pandoraspacecraft.utils.vec_to_radec(
+            *pandoraspacecraft.utils.radec_to_vec(ra, dec)
+        ),
+    )

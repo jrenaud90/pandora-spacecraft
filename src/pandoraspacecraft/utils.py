@@ -245,10 +245,18 @@ def vec_to_coord(x, y, z):
 
 
 def radec_to_vec(ra, dec):
-    ra, dec = u.Quantity(ra, "rad"), u.Quantity(dec, "rad")
+    ra, dec = u.Quantity(ra, "deg").to(u.rad), u.Quantity(dec, "deg").to(u.rad)
     ca, sa = np.cos(ra.value), np.sin(ra.value)
     cd, sd = np.cos(dec.value), np.sin(dec.value)
     return np.array([cd * ca, cd * sa, sd], dtype=float)
+
+
+def radec_from_vec(v):
+    x, y, z = v
+    r = np.linalg.norm(v)
+    ra = np.degrees(np.arctan2(y, x)) % 360.0
+    dec = np.degrees(np.arcsin(z / r))
+    return ra, dec
 
 
 def coord_to_vec(coord):
@@ -274,14 +282,6 @@ def get_pointing_vector_from_quats(quats, direction="boresight"):
     )
     pointing /= np.linalg.norm(pointing, axis=1)[:, None]
     return pointing
-
-
-def radec_from_vec(v):
-    x, y, z = v
-    r = np.linalg.norm(v)
-    ra = np.degrees(np.arctan2(y, x)) % 360.0
-    dec = np.degrees(np.arcsin(z / r))
-    return ra, dec
 
 
 def quat_xyzw_to_radec(q, boresight=np.array([0.0, 0.0, 1.0])):
