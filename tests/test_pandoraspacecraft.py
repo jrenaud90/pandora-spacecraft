@@ -42,4 +42,6 @@ def test_utils():
     pandoraspacecraft.utils.radec_to_vec(ra, dec)
     pandoraspacecraft.utils.radec_to_vec(ra * u.deg, dec * u.deg)
     vec = pandoraspacecraft.utils.radec_to_vec(Angle(ra * u.deg), Angle(dec * u.deg))
-    pandoraspacecraft.utils.radec_from_vec(vec)
+    ra2, dec2 = pandoraspacecraft.utils.radec_from_vec(vec)
+    assert np.isclose(ra, ra2)
+    assert np.isclose(dec, dec2)
