@@ -43,5 +43,6 @@ log = logging.getLogger("pandoraspacecraft")
 PACKAGEDIR = os.path.abspath(os.path.dirname(__file__))
 KERNELDIR = f"{PACKAGEDIR}/data/kernels/"
 TLEDIR = f"{PACKAGEDIR}/data/tle/"
+TLEDIR = f"{PACKAGEDIR}/data/tle/"
 
 from .spacecraft import PandoraSpacecraft  # noqa

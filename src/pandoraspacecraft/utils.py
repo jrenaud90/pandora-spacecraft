@@ -150,16 +150,20 @@ def create_meta_kernel(tles_only=False):
         for d in truncate_directory_string(dirname):
             path_values.append(d)
         path_symbols.append(dirname.split("/")[-1])
-        # TLE based SPK first, lowest priority
+        for d in np.sort(glob(dirname + "/*")):
+            if (not d.endswith("bsp")) and (not d.endswith("bc")):
+                kernels_to_load.append("$" + dirname.split("/")[-1] + d[len(dirname) :])
+
+    for dirname in glob(f"{TLEDIR}/*"):
+        for d in truncate_directory_string(dirname):
+            path_values.append(d)
+        path_symbols.append(dirname.split("/")[-1])
         if tles_only:
             for d in np.sort(glob(dirname + "/*")):
                 if d.endswith("pandora_tle.bsp"):
                     kernels_to_load.append(
                         "$" + dirname.split("/")[-1] + d[len(dirname) :]
                     )
-        for d in np.sort(glob(dirname + "/*")):
-            if (not d.endswith("bsp")) and (not d.endswith("bc")):
-                kernels_to_load.append("$" + dirname.split("/")[-1] + d[len(dirname) :])
     path_values.extend(truncate_directory_string(cache_dirs[0]))
     path_symbols.extend(["cache"])
     kernels_to_load.extend(
