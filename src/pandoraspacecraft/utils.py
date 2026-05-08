@@ -241,9 +241,9 @@ def vec_to_coord(x, y, z):
 
 
 def radec_to_vec(ra, dec):
-    ra, dec = u.Quantity(ra, "degree"), u.Quantity(dec, "degree")
-    ca, sa = np.cos(ra.value.value), np.sin(ra.value.value)
-    cd, sd = np.cos(dec.value.value), np.sin(dec.value.value)
+    ra, dec = u.Quantity(ra, "deg"), u.Quantity(dec, "deg")
+    ca, sa = np.cos(ra.value), np.sin(ra.value)
+    cd, sd = np.cos(dec.value), np.sin(dec.value)
     return np.array([cd * ca, cd * sa, sd], dtype=float)
 
 

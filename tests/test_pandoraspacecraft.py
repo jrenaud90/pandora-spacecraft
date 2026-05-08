@@ -1,4 +1,6 @@
+import astropy.units as u
 import numpy as np
+from astropy.coordinates import Angle
 from astropy.time import Time
 
 import pandoraspacecraft
@@ -28,3 +30,11 @@ def test_pandora_truncated():
     assert ra_result.shape == (1,)
     assert dec_result.shape == (1,)
     pandoraspacecraft.disable_test_mode()
+
+
+def test_utils():
+    ra, dec = 10, 10
+    pandoraspacecraft.utils.radec_to_vec(ra, dec)
+    pandoraspacecraft.utils.radec_to_vec(ra * u.deg, dec * u.deg)
+    vec = pandoraspacecraft.utils.radec_to_vec(Angle(ra * u.deg), Angle(dec * u.deg))
+    pandoraspacecraft.utils.radec_from_vec(vec)

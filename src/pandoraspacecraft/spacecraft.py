@@ -673,7 +673,9 @@ class Spacecraft(object):
             angle -= angle_limb
         return angle * u.deg
 
-    def get_angle_to_body(self, time, direction="boresight", body="SUN") -> u.Quantity:
+    def get_angle_to_body(
+        self, time, direction="boresight", body="SUN", pointing_vecs=None
+    ) -> u.Quantity:
         """Returns the angle between Pandora from a particular direction to the specified body in degrees at a particular time.
         This is evaluated from the actual pointing of Pandora.
 
@@ -681,6 +683,14 @@ class Spacecraft(object):
         ----------
         time: astropy.time.Time
             Time array at which to estimate position.
+        direction: str or list
+            Direction that you want to use to calculate the angle
+        body: str
+            Body to which you want to calculate the angle
+        pointing_vecs: optional
+            Optionally, the pointing vector to use to calculate.
+            If none is provided, will try to find the pointing vector given the direction and time.
+            If passing pointing_vecs, make sure to use the correct direction.
 
         Returns
         -------
@@ -692,7 +702,15 @@ class Spacecraft(object):
             pos = -self.get_spacecraft_position(time, body.split("_LIMB")[0])
         else:
             pos = -self.get_spacecraft_position(time, body)
-        pointing_vecs = self.get_pointing_vec(time, direction=direction)
+        if pointing_vecs is None:
+            try:
+                pointing_vecs = self.get_pointing_vec(time, direction=direction)
+            except ValueError:
+                raise ValueError("Can not calculate pointing vector for Pandora.")
+        else:
+            assert isinstance(pointing_vecs, np.NDArray)
+            assert pointing_vecs.shape == (len(time), 3)
+
         body_vecs = pos.to(u.km).value
         angle = np.rad2deg(angle_between(pointing_vecs, body_vecs))
         if body.endswith("_LIMB"):
