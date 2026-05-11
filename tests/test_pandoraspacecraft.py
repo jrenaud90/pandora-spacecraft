@@ -37,6 +37,12 @@ def test_pandora_truncated():
     pandoraspacecraft.disable_test_mode()
 
 
+def test_pandora_tle_mode():
+    ps = pandoraspacecraft.PandoraSpacecraft(tles_only=True)
+    assert ps.start_time > Time("2026-01-01 20:09:56.999998", scale="tdb")
+    assert ps.end_time < Time("2100-01-01 11:33:59.999999", scale="tdb")
+
+
 def test_utils():
     ra, dec = 10, 10
     pandoraspacecraft.utils.radec_to_vec(ra, dec)
