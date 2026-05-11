@@ -97,7 +97,7 @@ def create_meta_kernel(tles_only=False):
         "pck00011.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
     }
     if not tles_only:
-        ndays = 113
+        ndays = 118
         for idx in np.arange(0, ndays + 1, 1):
             t = (Time.strptime("2026011", format_string="%Y%j") + idx * u.day).strftime(
                 "%Y%j"
@@ -153,17 +153,10 @@ def create_meta_kernel(tles_only=False):
         for d in np.sort(glob(dirname + "/*")):
             if (not d.endswith("bsp")) and (not d.endswith("bc")):
                 kernels_to_load.append("$" + dirname.split("/")[-1] + d[len(dirname) :])
-
-    for dirname in glob(f"{TLEDIR}/*"):
-        for d in truncate_directory_string(dirname):
-            path_values.append(d)
-        path_symbols.append(dirname.split("/")[-1])
-        if tles_only:
-            for d in np.sort(glob(dirname + "/*")):
-                if d.endswith("pandora_tle.bsp"):
-                    kernels_to_load.append(
-                        "$" + dirname.split("/")[-1] + d[len(dirname) :]
-                    )
+            elif d.endswith("pandora_tle.bsp"):
+                kernels_to_load.append(
+                    "$" + dirname.split("/")[-1] + "/pandora_tle.bsp"
+                )
     path_values.extend(truncate_directory_string(cache_dirs[0]))
     path_symbols.extend(["cache"])
     kernels_to_load.extend(
