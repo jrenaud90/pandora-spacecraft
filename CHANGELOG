@@ -1,3 +1,7 @@
+# v1.1.7
+
+- Made the package OS agnostic.
+
 # v1.0.7
 
 - Added a TLE only mode where users can use the SPK from TLEs

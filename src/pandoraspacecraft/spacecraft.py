@@ -1,5 +1,6 @@
 """Classes for working with the orbits of spacecraft"""
 
+import shutil
 import subprocess
 from typing import Union
 
@@ -122,8 +123,11 @@ class Spacecraft(object):
     def _get_all_kernel_start_and_end_times(self):
 
         def get_SPK_start_and_end_times(kernel_name):
+            brief_tool = shutil.which("brief") or shutil.which("brief.exe")
+            if brief_tool is None:
+                raise FileNotFoundError("Could not find 'brief' utility on PATH")
             result = subprocess.run(
-                ["brief", kernel_name], capture_output=True, text=True, check=True
+                [brief_tool, kernel_name], capture_output=True, text=True, check=True
             ).stdout.split("\n")
             if not (f"{self.spacecraft_code}" in "\n".join(result[:9])):
                 return [], []

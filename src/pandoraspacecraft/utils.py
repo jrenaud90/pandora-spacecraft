@@ -55,6 +55,11 @@ PANDORADIRECTIONS = {
 }
 
 
+def _to_spice_path(path):
+    """Normalize filesystem paths to SPICE-friendly POSIX separators."""
+    return Path(path).as_posix()
+
+
 def clear_cache(all=False):
     if all:
         _astropy_clear_download_cache(pkgname="pandoraspacecraft")
@@ -62,7 +67,7 @@ def clear_cache(all=False):
         toclear = [
             key
             for key in cache_contents("pandoraspacecraft").keys()
-            if key.split("/")[-1].startswith("pandora")
+            if key.rsplit("/", 1)[-1].startswith("pandora")
             and (key.endswith("bsp") | key.endswith("bc"))
         ]
         [
@@ -73,14 +78,18 @@ def clear_cache(all=False):
 
 def truncate_directory_string(directory_string):
     """Turns a directory string into a SPICE compliant list of directorys..."""
+    directory_string = _to_spice_path(directory_string)
+    prefix = "/" if directory_string.startswith("/") else ""
+    words = [word for word in directory_string.split("/") if word]
+    if len(words) == 0:
+        return ["/"] if prefix else []
+
     lines = []
-    line = ""
-    words = directory_string.split("/")
-    for word in words:
-        if word == "":
-            continue
-        if len(line) < 50:
-            line = f"{line}/{word}"
+    line = f"{prefix}{words[0]}"
+    for word in words[1:]:
+        candidate = f"{line}/{word}"
+        if len(candidate) < 50:
+            line = candidate
         else:
             line = f"{line}+"
             lines.append(line)
@@ -121,7 +130,7 @@ def create_meta_kernel(tles_only=False):
                         for item, value in cc.items()
                         if (value not in paths)
                         and (
-                            item.split("/")[-1].startswith("pandora")
+                            item.rsplit("/", 1)[-1].startswith("pandora")
                             & (item.endswith(".spk"))
                             | item.endswith(".bc")
                             | item.endswith(".bsp")
@@ -144,23 +153,25 @@ def create_meta_kernel(tles_only=False):
     path_symbols = []
     kernels_to_load = []
 
-    for dirname in glob(f"{KERNELDIR}/*"):
+    for dirname in glob(str(KERNELDIR / "*")):
         if "testkernels" in dirname:
             continue
+        dirname_path = Path(dirname)
         for d in truncate_directory_string(dirname):
             path_values.append(d)
-        path_symbols.append(dirname.split("/")[-1])
-        for d in np.sort(glob(dirname + "/*")):
+        path_symbols.append(dirname_path.name)
+        for d in np.sort(glob(str(dirname_path / "*"))):
+            d_path = Path(d)
             if (not d.endswith("bsp")) and (not d.endswith("bc")):
-                kernels_to_load.append("$" + dirname.split("/")[-1] + d[len(dirname) :])
-            elif d.endswith("pandora_tle.bsp"):
-                kernels_to_load.append(
-                    "$" + dirname.split("/")[-1] + "/pandora_tle.bsp"
-                )
+                rel = d_path.relative_to(dirname_path).as_posix()
+                kernels_to_load.append(f"${dirname_path.name}/{rel}")
+            elif d_path.name == "pandora_tle.bsp":
+                kernels_to_load.append(f"${dirname_path.name}/pandora_tle.bsp")
     path_values.extend(truncate_directory_string(cache_dirs[0]))
     path_symbols.extend(["cache"])
+    cache_dir = Path(cache_dirs[0])
     kernels_to_load.extend(
-        ["$cache/" + path[len(cache_dirs[0]) + 1 :] for path in paths]
+        [f"$cache/{Path(path).relative_to(cache_dir).as_posix()}" for path in paths]
     )
 
     def format_list(l, pad=10):
