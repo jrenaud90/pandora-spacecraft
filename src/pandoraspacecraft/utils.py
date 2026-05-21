@@ -97,7 +97,7 @@ def create_meta_kernel(tles_only=False):
         "pck00011.tpc": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
     }
     if not tles_only:
-        ndays = 118
+        ndays = 128
         for idx in np.arange(0, ndays + 1, 1):
             t = (Time.strptime("2026011", format_string="%Y%j") + idx * u.day).strftime(
                 "%Y%j"
